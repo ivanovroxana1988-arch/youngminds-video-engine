@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { VisualAssetExporter } from "@/components/VisualAssetExporter";
+import { YOUNGMINDS_BRAND } from "@/lib/brand/youngminds";
 import { ContentPlan } from "@/types/content";
+
+const QUICK_IDEAS = [
+  "Promovează robotica pentru copiii care iubesc construcțiile și experimentele.",
+  "Explică părinților de ce STEM-ul ajută copilul să gândească logic prin joacă.",
+  "Creează o campanie despre afterschool ca spațiu sigur, cald și curios.",
+  "Fă o serie despre activitățile YoungMinds: pian, tae-kwon do, robotică, limbi străine și yoga."
+];
 
 export function ScriptToContentForm() {
   const [script, setScript] = useState("");
-  const [brand, setBrand] = useState("YoungMinds / Lucindra");
-  const [audience, setAudience] = useState("oameni interesați de educație, AI, proiecte și dezvoltare personală lucidă");
+  const [audience, setAudience] = useState(YOUNGMINDS_BRAND.audience);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +31,9 @@ export function ScriptToContentForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         script,
-        brand,
+        brand: `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`,
         audience,
-        goal: "transformă scriptul într-o săptămână de postări Instagram clare, utile și publicabile",
+        goal: YOUNGMINDS_BRAND.defaultGoal,
         language: "Romanian",
         count: 7
       })
@@ -76,35 +83,58 @@ export function ScriptToContentForm() {
 
   return (
     <main className="shell">
-      <section className="card">
-        <p className="eyebrow">MVP</p>
-        <h1>Script → Instagram Content Engine</h1>
-        <p className="lead">
-          Pui scriptul. Primești postări, carusele, hooks, captions, asset-uri vizuale și programare prin Postiz. Pentru că aparent un text nu poate trăi liniștit fără să devină șapte formate de conținut.
-        </p>
-
-        <div className="grid">
-          <div>
-            <label htmlFor="brand">Brand / context</label>
-            <input id="brand" value={brand} onChange={(event) => setBrand(event.target.value)} />
+      <section className="brand-hero card">
+        <div className="brand-copy">
+          <p className="eyebrow">YoungMinds Content Studio</p>
+          <h1>Postări Instagram pentru afterschool și locul de joacă.</h1>
+          <p className="lead">
+            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts și asset-uri vizuale în universul nostru: albastru cosmic, accente galbene, stele, joacă și învățare. Nu încă o unealtă generică, slavă internetului.
+          </p>
+          <div className="activity-row">
+            {YOUNGMINDS_BRAND.activities.map((activity) => (
+              <span className="activity-chip" key={activity.name}>{activity.name}</span>
+            ))}
           </div>
+        </div>
+        <div className="brand-orbit" aria-hidden="true">
+          <div className="planet-brain">🧠</div>
+          <div className="orbit-ring" />
+          <div className="spark spark-one">✦</div>
+          <div className="spark spark-two">✧</div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 24 }}>
+        <div className="grid">
           <div>
             <label htmlFor="audience">Audiență</label>
             <input id="audience" value={audience} onChange={(event) => setAudience(event.target.value)} />
           </div>
+          <div>
+            <label>Brand fix</label>
+            <div className="brand-lock">{YOUNGMINDS_BRAND.name} · {YOUNGMINDS_BRAND.descriptor}</div>
+          </div>
         </div>
 
-        <label htmlFor="script">Script</label>
+        <label htmlFor="script">Idee / script / campanie</label>
         <textarea
           id="script"
           value={script}
           onChange={(event) => setScript(event.target.value)}
-          placeholder="Lipește aici transcriptul, articolul, ideea lungă sau scriptul video."
+          placeholder={YOUNGMINDS_BRAND.defaultScript}
         />
 
+        <div className="quick-ideas">
+          {QUICK_IDEAS.map((idea) => (
+            <button className="idea-chip" key={idea} type="button" onClick={() => setScript(idea)}>
+              {idea}
+            </button>
+          ))}
+        </div>
+
         <div className="actions">
-          <button className="button" onClick={generate} disabled={loading || script.length < 50}>
-            {loading ? "Lucrează..." : "Generează postările"}
+          <button className="button" onClick={generate} disabled={loading || script.length < 20}>
+            {loading ? "Lucrează..." : "Generează postările YoungMinds"}
           </button>
           <button className="button secondary" onClick={schedule} disabled={loading || !plan}>
             Trimite în Postiz
@@ -163,7 +193,7 @@ export function ScriptToContentForm() {
               <p><strong>CTA:</strong> {post.cta}</p>
               <p>{post.hashtags.join(" ")}</p>
 
-              <VisualAssetExporter post={post} postIndex={index} brand={brand} />
+              <VisualAssetExporter post={post} postIndex={index} />
             </article>
           ))}
         </section>
