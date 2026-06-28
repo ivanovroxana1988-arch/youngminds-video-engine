@@ -31,24 +31,44 @@ function parseOpenAIImageError(status: number, body: string) {
   }
 }
 
+function cleanFragment(value?: string) {
+  return (value || "")
+    .replace(/\r/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/post context\s*:/gi, "")
+    .replace(/layout style\s*:/gi, "")
+    .replace(/design notes\s*:/gi, "")
+    .replace(/visual brief\s*:/gi, "")
+    .replace(/template type\s*:/gi, "")
+    .replace(/style preset\s*:/gi, "")
+    .replace(/theme\s*:/gi, "")
+    .trim();
+}
+
 function buildImagePrompt(visualBrief: string, context: BrandImageContext) {
   const brand = context.brand ?? "YoungMinds";
-  const parts = [
-    `Create one polished Instagram marketing background for ${brand}.`,
-    "Use a warm afterschool and play-space mood.",
-    "Use blue and purple tones, yellow accents, rounded shapes and subtle stars.",
-    "Show educational objects, toys, activity tables, art materials, books, robotics kits, music details, mats or outdoor play-space elements.",
-    "Leave clear space for text overlay.",
-    "Do not include readable text, logos or watermarks.",
-    context.title ? `Post title: ${context.title}.` : "",
-    context.hook ? `Hook: ${context.hook}.` : "",
-    context.photoTheme ? `Theme: ${context.photoTheme}.` : "",
-    context.stylePreset ? `Layout style: ${context.stylePreset}.` : "",
-    context.designNotes ? `Design notes: ${context.designNotes}.` : "",
-    `Visual brief: ${visualBrief}`
-  ];
+  const subject = [cleanFragment(context.photoTheme), cleanFragment(context.title), cleanFragment(context.hook)]
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(", ");
 
-  return parts.filter(Boolean).join("\n");
+  const scene = cleanFragment(visualBrief);
+  const style = cleanFragment(context.stylePreset);
+
+  return [
+    `Create one polished Instagram background image for ${brand}.`,
+    "This is a background asset only, not a finished poster.",
+    "Show a warm afterschool, playground, workshop or educational environment.",
+    "Use blue and purple tones, yellow accents, rounded shapes and subtle star details.",
+    "Show relevant objects, spaces and activity materials such as robotics kits, books, art supplies, music elements, mats, tables or outdoor play elements.",
+    "Leave clear empty space for later text overlay.",
+    "Absolutely no readable text, no letters, no numbers, no captions, no labels, no interface notes, no watermarks and no logos.",
+    subject ? `Main subject: ${subject}.` : "",
+    style ? `Preferred composition mood: ${style}.` : "",
+    scene ? `Scene direction: ${scene}.` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function extractImageUrl(data: any) {
