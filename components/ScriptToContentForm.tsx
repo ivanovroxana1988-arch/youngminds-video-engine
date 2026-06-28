@@ -2,35 +2,27 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { VisualAssetExporter } from "@/components/VisualAssetExporter";
 import { MetaTokenStatus } from "@/components/MetaTokenStatus";
 import { YOUNGMINDS_BRAND } from "@/lib/brand/youngminds";
-import { suggestPhotoForPost, YOUNGMINDS_PHOTO_LIBRARY } from "@/lib/media/photo-library";
 import { ContentPlan, GeneratedPost, TemplateType } from "@/types/content";
 
 const QUICK_IDEAS = [
-  "Promovează robotica pentru copiii care iubesc construcțiile și experimentele.",
-  "Explică părinților de ce STEM-ul ajută copilul să gândească logic prin joacă.",
-  "Creează o campanie despre afterschool ca spațiu sigur, cald și curios.",
-  "Fă o serie despre activitățile YoungMinds: pian, tae-kwon do, robotică, limbi străine și yoga."
+  "Campanie de înscrieri pentru programul de vară YoungMinds, cu joacă, prietenii și activități educative.",
+  "Postare despre robotică: construim, testăm și învățăm prin joacă.",
+  "Postare despre atelier creativ: copiii creează ceva frumos cu mâinile lor.",
+  "Postare despre afterschool ca loc sigur, cald și curios."
 ];
 
 const TEMPLATE_OPTIONS: { value: TemplateType; label: string }[] = [
-  { value: "photo_split", label: "Foto + text split" },
-  { value: "photo_hero", label: "Foto mare + text" },
+  { value: "photo_hero", label: "Poză mare + text" },
+  { value: "photo_split", label: "Text + poză" },
   { value: "carousel_education", label: "Carusel educațional" },
   { value: "text_card", label: "Card text" }
 ];
 
 const brand = `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`;
-
-type MediaItem = {
-  name: string;
-  path: string;
-  url: string;
-  createdAt?: string | null;
-};
 
 export function ScriptToContentForm() {
   const [script, setScript] = useState("");
@@ -40,61 +32,8 @@ export function ScriptToContentForm() {
   const [error, setError] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [postImages, setPostImages] = useState<Record<number, string>>({});
-  const [photoUrls, setPhotoUrls] = useState<Record<number, string>>({});
   const [templateOverrides, setTemplateOverrides] = useState<Record<number, TemplateType>>({});
   const [generatingImages, setGeneratingImages] = useState<Record<number, boolean>>({});
-  const [autoGenerateVisuals, setAutoGenerateVisuals] = useState(true);
-  const [libraryImages, setLibraryImages] = useState<MediaItem[]>([]);
-  const [loadingLibrary, setLoadingLibrary] = useState(false);
-  const [uploadingLibrary, setUploadingLibrary] = useState(false);
-
-  useEffect(() => {
-    void loadMediaLibrary();
-  }, []);
-
-  async function loadMediaLibrary() {
-    setLoadingLibrary(true);
-    try {
-      const response = await fetch("/api/media/list");
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Nu am putut încărca librăria media.");
-      setLibraryImages(data.items ?? []);
-    } catch (err: any) {
-      setError(err.message ?? "Nu am putut încărca librăria media.");
-    } finally {
-      setLoadingLibrary(false);
-    }
-  }
-
-  async function handleLibraryUpload(files: FileList | null) {
-    if (!files?.length) return;
-
-    setUploadingLibrary(true);
-    setError(null);
-    setActionResult(null);
-
-    try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => formData.append("files", file));
-
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Uploadul imaginilor a eșuat.");
-      }
-
-      setActionResult(`Au fost încărcate ${data.uploaded?.length ?? 0} imagini în librăria media.`);
-      await loadMediaLibrary();
-    } catch (err: any) {
-      setError(err.message ?? "Uploadul imaginilor a eșuat.");
-    } finally {
-      setUploadingLibrary(false);
-    }
-  }
 
   async function requestImage(post: GeneratedPost, index: number) {
     const response = await fetch("/api/meta/generate-image", {
@@ -107,39 +46,28 @@ export function ScriptToContentForm() {
         post: {
           title: post.title,
           hook: post.hook,
-          imageType: post.imageType,
+          imageType: post.imageType ?? "mixed",
           photoTheme: post.photoTheme,
-          photoRequired: post.photoRequired,
-          templateType: templateOverrides[index] ?? post.templateType,
-          stylePreset: post.stylePreset,
+          photoRequired: true,
+          templateType: templateOverrides[index] ?? post.templateType ?? "photo_hero",
+          stylePreset: post.stylePreset ?? "overlay_photo",
           designNotes: post.designNotes
         }
       })
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error ?? "Generarea imaginii a eșuat.");
-    }
-
+    if (!response.ok) throw new Error(data.error ?? "Generarea imaginii a eșuat.");
     return data.imageUrl as string | undefined;
   }
 
-  async function generateImageForPost(post: GeneratedPost, index: number, options?: { silent?: boolean }) {
+  async function generateImageForPost(post: GeneratedPost, index: number) {
     setGeneratingImages((prev) => ({ ...prev, [index]: true }));
-    if (!options?.silent) setError(null);
-
     try {
       const imageUrl = await requestImage(post, index);
-      if (imageUrl) {
-        setPostImages((prev) => ({ ...prev, [index]: imageUrl }));
-      }
+      if (imageUrl) setPostImages((prev) => ({ ...prev, [index]: imageUrl }));
       return { ok: true, imageUrl };
     } catch (err: any) {
-      if (!options?.silent) {
-        setError(err.message ?? "Generarea imaginii a eșuat.");
-      }
       return { ok: false, error: err.message ?? "Generarea imaginii a eșuat." };
     } finally {
       setGeneratingImages((prev) => ({ ...prev, [index]: false }));
@@ -147,40 +75,30 @@ export function ScriptToContentForm() {
   }
 
   async function generateImagesForPlan(posts: GeneratedPost[]) {
-    let success = 0;
-    const errors: string[] = [];
+    setActionResult("Generez automat imaginile pentru fiecare postare...");
+    const results = await Promise.all(posts.map((post, index) => generateImageForPost(post, index)));
+    const success = results.filter((result) => result.ok).length;
+    const errors = results
+      .map((result, index) => (!result.ok && result.error ? `Postarea ${index + 1}: ${result.error}` : null))
+      .filter(Boolean) as string[];
 
-    for (let index = 0; index < posts.length; index++) {
-      const result = await generateImageForPost(posts[index], index, { silent: true });
-      if (result.ok) {
-        success += 1;
-      } else if (result.error) {
-        errors.push(`Postarea ${index + 1}: ${result.error}`);
-      }
-    }
-
-    if (success > 0 && errors.length === 0) {
-      setActionResult(`Plan generat. ${success}/${posts.length} imagini au fost generate automat.`);
-      return;
-    }
-
-    if (success > 0 && errors.length > 0) {
-      setActionResult(`Plan generat. ${success}/${posts.length} imagini au fost generate automat, dar unele au eșuat.`);
+    if (success === posts.length) {
+      setActionResult(`Campanie completă generată: ${posts.length} postări și ${success} imagini.`);
+    } else if (success > 0) {
+      setActionResult(`Campanie generată parțial: ${posts.length} postări și ${success} imagini.`);
       setError(errors.join(" | "));
-      return;
+    } else {
+      setActionResult("Textele au fost generate, dar imaginile AI nu au mers.");
+      setError(errors.join(" | ") || "Generarea imaginilor a eșuat fără mesaj clar.");
     }
-
-    setActionResult("Plan generat, dar generarea AI a imaginilor nu a mers.");
-    if (errors.length > 0) setError(errors.join(" | "));
   }
 
   async function generate() {
     setLoading(true);
     setError(null);
-    setActionResult(null);
+    setActionResult("Generez campania completă...");
     setPlan(null);
     setPostImages({});
-    setPhotoUrls({});
     setTemplateOverrides({});
 
     try {
@@ -198,19 +116,10 @@ export function ScriptToContentForm() {
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "A picat generarea. Tehnologia și-a luat pauză de filosofie.");
-      }
-
+      if (!response.ok) throw new Error(data.error ?? "Generarea a eșuat.");
       const generatedPlan = data.plan as ContentPlan;
       setPlan(generatedPlan);
-
-      if (autoGenerateVisuals) {
-        setActionResult("Plan generat. Generez automat imaginile...");
-        await generateImagesForPlan(generatedPlan.posts);
-      } else {
-        setActionResult("Plan generat. Imaginile pot fi generate sau alese din librăria media.");
-      }
+      await generateImagesForPlan(generatedPlan.posts);
     } catch (err: any) {
       setError(err.message ?? "Generarea a eșuat.");
     } finally {
@@ -219,26 +128,22 @@ export function ScriptToContentForm() {
   }
 
   async function publishNow(post: GeneratedPost, index: number) {
-    if (!plan) return;
     setLoading(true);
     setError(null);
     setActionResult(null);
 
-    const imageUrl = photoUrls[index] || postImages[index] || undefined;
     const response = await fetch("/api/meta/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ post, brand: YOUNGMINDS_BRAND.name, imageUrl })
+      body: JSON.stringify({ post, brand: YOUNGMINDS_BRAND.name, imageUrl: postImages[index] || undefined })
     });
 
     const data = await response.json();
     setLoading(false);
-
     if (!response.ok) {
       setError(data.error ?? "Publicarea a eșuat.");
       return;
     }
-
     setActionResult(`Postare publicată pe Instagram! ID: ${data.postId}`);
   }
 
@@ -257,7 +162,7 @@ export function ScriptToContentForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         posts: plan.posts,
-        imageUrls: plan.posts.map((_, index) => photoUrls[index] || postImages[index] || ""),
+        imageUrls: plan.posts.map((_, index) => postImages[index] || ""),
         brand: YOUNGMINDS_BRAND.name,
         startDateIso: startDate.toISOString(),
         daysBetweenPosts: 1
@@ -266,36 +171,25 @@ export function ScriptToContentForm() {
 
     const data = await response.json();
     setLoading(false);
-
     if (!response.ok) {
       setError(data.error ?? "Programarea a eșuat.");
       return;
     }
-
     setActionResult(`Programate ${data.scheduled} postări pe Instagram, începând de mâine la ora 09:00.`);
-  }
-
-  function updatePhotoUrl(index: number, value: string) {
-    setPhotoUrls((prev) => ({ ...prev, [index]: value }));
   }
 
   function updateTemplate(index: number, value: TemplateType) {
     setTemplateOverrides((prev) => ({ ...prev, [index]: value }));
   }
 
-  function assignLibraryPhoto(index: number, url: string) {
-    setPhotoUrls((prev) => ({ ...prev, [index]: url }));
-    setActionResult(`Fotografia a fost selectată pentru postarea ${index + 1}.`);
-  }
-
   return (
     <main className="shell">
       <section className="brand-hero card">
         <div className="brand-copy">
-          <p className="eyebrow">YoungMinds Content Studio</p>
-          <h1>Postări Instagram pentru afterschool și locul de joacă.</h1>
+          <p className="eyebrow">YoungMinds Autopilot</p>
+          <h1>Scrii ideea. Primești postările gata.</h1>
           <p className="lead">
-            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts, imagini sau poze din librăria ta și template-uri apropiate de designul vostru actual.
+            Aplicația generează automat textul, imaginea, layoutul și preview-ul final în stil YoungMinds.
           </p>
           <div className="activity-row">
             {YOUNGMINDS_BRAND.activities.map((activity) => (
@@ -312,14 +206,13 @@ export function ScriptToContentForm() {
 
       <section className="card" style={{ marginTop: 24 }}>
         <MetaTokenStatus />
-
         <div className="grid">
           <div>
             <label htmlFor="audience">Audiență</label>
             <input id="audience" value={audience} onChange={(event) => setAudience(event.target.value)} />
           </div>
           <div>
-            <label>Brand fix</label>
+            <label>Brand</label>
             <div className="brand-lock">{YOUNGMINDS_BRAND.name} · {YOUNGMINDS_BRAND.descriptor}</div>
           </div>
         </div>
@@ -329,7 +222,7 @@ export function ScriptToContentForm() {
           id="script"
           value={script}
           onChange={(event) => setScript(event.target.value)}
-          placeholder={YOUNGMINDS_BRAND.defaultScript}
+          placeholder="Exemplu: campanie de înscrieri pentru programul de vară YoungMinds, cu joacă, prietenii, ateliere creative și activități educative."
         />
 
         <div className="quick-ideas">
@@ -340,26 +233,12 @@ export function ScriptToContentForm() {
           ))}
         </div>
 
-        <div className="photo-library-note">
-          <strong>Flux recomandat:</strong> încarci câteva poze reale în librăria media din cloud, iar app-ul le poate folosi în postări. Dacă nu ai poze potrivite, încearcă și generarea AI. Pozele locale rămân doar opționale: {YOUNGMINDS_PHOTO_LIBRARY.map((photo) => photo.label).join(" · ")}.
-        </div>
-
-        <label className="toggle-row" htmlFor="auto-generate-visuals">
-          <input
-            id="auto-generate-visuals"
-            type="checkbox"
-            checked={autoGenerateVisuals}
-            onChange={(event) => setAutoGenerateVisuals(event.target.checked)}
-          />
-          <span>Generează automat imaginile AI pentru toate postările</span>
-        </label>
-
         <div className="actions">
           <button className="button" onClick={generate} disabled={loading || script.length < 20}>
-            {loading ? "Lucrează..." : "Generează postări calibrate"}
+            {loading ? "Generez campania completă..." : "Generează campanie completă"}
           </button>
           <button className="button secondary" onClick={scheduleAll} disabled={loading || !plan}>
-            Programează săptămâna pe Instagram
+            Programează pe Instagram
           </button>
         </div>
 
@@ -367,191 +246,70 @@ export function ScriptToContentForm() {
         {actionResult && <p style={{ color: "#065f46", fontWeight: 700 }}>{actionResult}</p>}
       </section>
 
-      <section className="card" style={{ marginTop: 24 }}>
-        <div className="asset-header">
-          <div>
-            <p className="eyebrow">Librărie media</p>
-            <h2>Pozele tale, centralizate online</h2>
-            <p className="lead" style={{ fontSize: "1rem", maxWidth: 900 }}>
-              Aici poți încărca fotografii reale YoungMinds în Supabase Storage. Apoi le alegi rapid pentru fiecare postare. Asta e direcția bună dacă vrei design apropiat de exemplele voastre, nu magie abstractă cu rezultate capricioase.
-            </p>
-          </div>
-          <div className="actions compact">
-            <label className="button secondary" htmlFor="library-upload-input" style={{ cursor: "pointer" }}>
-              {uploadingLibrary ? "Încarc pozele..." : "Încarcă poze în librărie"}
-            </label>
-            <input
-              id="library-upload-input"
-              type="file"
-              accept="image/*"
-              multiple
-              style={{ display: "none" }}
-              onChange={(event) => void handleLibraryUpload(event.target.files)}
-            />
-            <button className="button secondary" type="button" onClick={() => void loadMediaLibrary()} disabled={loadingLibrary}>
-              {loadingLibrary ? "Actualizez..." : "Reîncarcă librăria"}
-            </button>
-          </div>
-        </div>
-
-        {libraryImages.length ? (
-          <div className="library-grid">
-            {libraryImages.map((item) => (
-              <div className="library-card" key={item.path}>
-                <img src={item.url} alt={item.name} className="library-thumb" />
-                <div className="library-meta">{item.name}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="photo-hint">Nu există încă imagini în librărie. Încarcă 5-15 poze bune și viața devine instant mai puțin birocratică.</p>
-        )}
-      </section>
-
       {plan && (
         <section className="card" style={{ marginTop: 24 }}>
-          <p className="eyebrow">Plan generat</p>
-          <h2>Rezumat</h2>
+          <p className="eyebrow">Campanie generată</p>
+          <h2>Postări gata de verificat</h2>
           <p>{plan.sourceSummary}</p>
-          <p>
-            <strong>Piloni:</strong> {plan.contentPillars.join(" · ")}
-          </p>
 
           {plan.posts.map((post, index) => {
-            const suggestedPhoto = suggestPhotoForPost(post);
-            const selectedPhotoUrl = photoUrls[index] || postImages[index];
-            const selectedTemplate = templateOverrides[index] ?? post.templateType ?? "photo_split";
+            const selectedImageUrl = postImages[index];
+            const selectedTemplate = templateOverrides[index] ?? post.templateType ?? "photo_hero";
+            const imageIsLoading = Boolean(generatingImages[index]);
 
             return (
               <article key={`${post.title}-${index}`} className="post-card">
                 <div className="post-topline">
                   <span className="badge">{post.format}</span>
-                  <span className="meta-chip">{selectedTemplate}</span>
                   <span className="meta-chip">{post.stylePreset ?? "overlay_photo"}</span>
-                  <span className="meta-chip">{post.imageType ?? "mixed"}</span>
-                  {post.photoRequired ? <span className="meta-chip warning">vizual foto recomandat</span> : null}
+                  <span className={selectedImageUrl ? "meta-chip" : "meta-chip warning"}>
+                    {selectedImageUrl ? "imagine generată" : imageIsLoading ? "imagine în lucru" : "imagine lipsă"}
+                  </span>
                 </div>
 
                 <h3>{index + 1}. {post.title}</h3>
                 <p><strong>Hook:</strong> {post.hook}</p>
                 <pre>{post.caption}</pre>
-                <p><strong>Vizual:</strong> {post.visualBrief}</p>
-
-                <section className="design-panel">
-                  <div className="grid">
-                    <div>
-                      <label htmlFor={`template-${index}`}>Template</label>
-                      <select
-                        id={`template-${index}`}
-                        value={selectedTemplate}
-                        onChange={(event) => updateTemplate(index, event.target.value as TemplateType)}
-                      >
-                        {TEMPLATE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor={`photo-${index}`}>Poză / URL imagine</label>
-                      <input
-                        id={`photo-${index}`}
-                        value={photoUrls[index] ?? ""}
-                        onChange={(event) => updatePhotoUrl(index, event.target.value)}
-                        placeholder={post.photoTheme ? `/photos/${post.photoTheme}.jpg` : "/photos/robotica-01.jpg"}
-                      />
-                    </div>
-                  </div>
-
-                  <p className="photo-hint">
-                    <strong>Temă foto:</strong> {post.photoTheme ?? "nespecificată"}. <strong>Stil:</strong> {post.stylePreset ?? "overlay_photo"}. {post.designNotes ? <><strong> Design:</strong> {post.designNotes}</> : null}
-                  </p>
-
-                  <div className="actions compact">
-                    {suggestedPhoto ? (
-                      <button className="button secondary" type="button" onClick={() => updatePhotoUrl(index, suggestedPhoto.url)}>
-                        Folosește sugestia locală: {suggestedPhoto.label}
-                      </button>
-                    ) : null}
-                    <button
-                      className="button secondary"
-                      type="button"
-                      onClick={() => void generateImageForPost(post, index)}
-                      disabled={generatingImages[index]}
-                    >
-                      {generatingImages[index] ? "Generez imaginea..." : postImages[index] ? "Regenerează imagine AI" : "Generează imagine AI"}
-                    </button>
-                  </div>
-
-                  {libraryImages.length ? (
-                    <div style={{ marginTop: 14 }}>
-                      <strong>Poze din librărie pentru această postare</strong>
-                      <div className="picker-grid">
-                        {libraryImages.slice(0, 8).map((item) => (
-                          <button key={`${item.path}-${index}`} type="button" className="picker-card" onClick={() => assignLibraryPhoto(index, item.url)}>
-                            <img src={item.url} alt={item.name} className="picker-thumb" />
-                            <span>Folosește poza</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {selectedPhotoUrl ? (
-                    <img
-                      src={selectedPhotoUrl}
-                      alt={`Imagine pentru postarea ${index + 1}`}
-                      className="selected-photo-preview"
-                    />
-                  ) : null}
-                </section>
-
-                {post.carouselSlides?.length ? (
-                  <details>
-                    <summary>Slide-uri carusel</summary>
-                    <ol>
-                      {post.carouselSlides.map((slide, slideIndex) => (
-                        <li key={`${slide.title}-${slideIndex}`}>
-                          <strong>{slide.title}</strong>: {slide.body}
-                        </li>
-                      ))}
-                    </ol>
-                  </details>
-                ) : null}
-
-                {post.reelScript?.scenes?.length ? (
-                  <details>
-                    <summary>Script Reel</summary>
-                    <ol>
-                      {post.reelScript.scenes.map((scene, sceneIndex) => (
-                        <li key={`${scene.visual}-${sceneIndex}`}>
-                          <strong>Vizual:</strong> {scene.visual}<br />
-                          <strong>VO:</strong> {scene.voiceover}<br />
-                          <strong>Text:</strong> {scene.onScreenText}
-                        </li>
-                      ))}
-                    </ol>
-                  </details>
-                ) : null}
-
                 <p><strong>CTA:</strong> {post.cta}</p>
                 <p>{post.hashtags.join(" ")}</p>
 
-                <div className="actions" style={{ marginTop: 12 }}>
+                <div className="actions compact">
                   <button
-                    className="button"
-                    onClick={() => publishNow(post, index)}
-                    disabled={loading}
+                    className="button secondary"
+                    type="button"
+                    onClick={() => void generateImageForPost(post, index)}
+                    disabled={imageIsLoading}
                   >
+                    {imageIsLoading ? "Generez imaginea..." : selectedImageUrl ? "Regenerează imaginea" : "Generează imaginea"}
+                  </button>
+                  <button className="button" onClick={() => publishNow(post, index)} disabled={loading}>
                     Publică acum pe Instagram
                   </button>
                 </div>
 
-                <VisualAssetExporter
-                  post={post}
-                  postIndex={index}
-                  photoUrl={selectedPhotoUrl}
-                  templateType={selectedTemplate}
-                />
+                {selectedImageUrl ? (
+                  <img src={selectedImageUrl} alt={`Imagine generată pentru postarea ${index + 1}`} className="selected-photo-preview" />
+                ) : null}
+
+                <details style={{ marginTop: 16 }}>
+                  <summary>Opțiuni avansate</summary>
+                  <div className="design-panel">
+                    <label htmlFor={`template-${index}`}>Template</label>
+                    <select
+                      id={`template-${index}`}
+                      value={selectedTemplate}
+                      onChange={(event) => updateTemplate(index, event.target.value as TemplateType)}
+                    >
+                      {TEMPLATE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </details>
+
+                {selectedImageUrl ? (
+                  <VisualAssetExporter post={post} postIndex={index} photoUrl={selectedImageUrl} templateType={selectedTemplate} />
+                ) : null}
               </article>
             );
           })}
