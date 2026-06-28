@@ -40,6 +40,7 @@ h1 { font-size: clamp(2.2rem, 6vw, 5rem); line-height: 0.95; margin: 0 0 20px; m
   font-weight: 800;
   cursor: pointer;
 }
+.button:disabled { opacity: 0.58; cursor: not-allowed; }
 .secondary {
   border: 1px solid var(--line);
   background: white;
@@ -68,3 +69,50 @@ textarea { min-height: 260px; resize: vertical; }
 .error { color: #b42318; font-weight: 700; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.asset-box {
+  margin-top: 20px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: #fdfaff;
+}
+.asset-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.asset-header h4 { margin: 4px 0 0; }
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.asset-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px;
+  background: white;
+}
+.asset-preview {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #eee5f7;
+  background: #fbf7ff;
+}
+.asset-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.asset-actions span { color: var(--muted); font-weight: 700; }
+.asset-status { color: var(--accent-dark); font-weight: 700; }
+@media (max-width: 640px) {
+  .asset-header { align-items: flex-start; flex-direction: column; }
+}
