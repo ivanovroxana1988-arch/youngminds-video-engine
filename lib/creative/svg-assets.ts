@@ -1,5 +1,5 @@
 import { YOUNGMINDS_BRAND } from "@/lib/brand/youngminds";
-import { GeneratedPost, TemplateType } from "@/types/content";
+import { GeneratedPost, StylePreset, TemplateType } from "@/types/content";
 
 export type VisualAsset = {
   filename: string;
@@ -16,6 +16,8 @@ export type VisualAssetOptions = {
 const WIDTH = 1080;
 const HEIGHT = 1350;
 const C = YOUNGMINDS_BRAND.colors;
+const DEFAULT_PHONE = "0746 220 222";
+const DEFAULT_DATE = "29.06 – 28.08.2026";
 
 function escapeXml(value: string) {
   return value
@@ -65,204 +67,259 @@ function fontSizeFor(text: string, base: number, min: number, thresholds: Array<
   return Math.max(min, base - reduction);
 }
 
-function centeredTextBlock(args: {
-  lines: string[];
-  x: number;
-  centerY: number;
-  lineHeight: number;
-  className: string;
-  anchor?: "start" | "middle";
-}) {
-  const startY = args.centerY - ((args.lines.length - 1) * args.lineHeight) / 2;
-  const anchor = args.anchor ?? "middle";
-  return `<text x="${args.x}" y="${startY}" text-anchor="${anchor}" class="${args.className}">${args.lines
-    .map((line, index) => `<tspan x="${args.x}" dy="${index === 0 ? 0 : args.lineHeight}">${line}</tspan>`)
+function svgDataUrl(svg: string) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function renderLines(lines: string[], x: number, y: number, lineHeight: number, className: string) {
+  return `<text x="${x}" y="${y}" class="${className}">${lines
+    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${line}</tspan>`)
     .join("")}</text>`;
 }
 
-function decorativeStars() {
-  return `
-  <path d="M170 160 l18 38 38 18 -38 18 -18 38 -18 -38 -38 -18 38 -18z" fill="${C.white}" opacity="0.92"/>
-  <path d="M886 206 l13 27 27 13 -27 13 -13 27 -13 -27 -27 -13 27 -13z" fill="${C.yellow}"/>
-  <path d="M770 1048 l14 30 30 14 -30 14 -14 30 -14 -30 -30 -14 30 -14z" fill="${C.white}"/>
-  <circle cx="900" cy="1080" r="18" fill="${C.pink}" opacity="0.88"/>
-  <circle cx="170" cy="1010" r="16" fill="${C.softBlue}" opacity="0.78"/>
-  <circle cx="962" cy="366" r="9" fill="${C.yellow}"/>
-  <circle cx="122" cy="420" r="10" fill="${C.pink}"/>`;
+function renderCenteredLines(lines: string[], x: number, centerY: number, lineHeight: number, className: string) {
+  const startY = centerY - ((lines.length - 1) * lineHeight) / 2;
+  return `<text x="${x}" y="${startY}" text-anchor="middle" class="${className}">${lines
+    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${line}</tspan>`)
+    .join("")}</text>`;
 }
 
-function miniLogo(x: number, y: number, scale = 1) {
+function miniLogo(x: number, y: number, scale = 1, fill = C.white) {
   return `<g transform="translate(${x} ${y}) scale(${scale})">
     <path d="M92 30 C116 30 131 47 128 71 C152 74 166 91 166 116 C166 144 143 166 115 166 C98 166 83 158 74 146 C64 159 49 166 31 166 C10 166 -6 150 -6 128 C-6 112 2 99 15 92 C5 80 4 62 15 49 C30 31 55 34 69 52 C75 39 83 30 92 30Z" fill="${C.yellow}" stroke="${C.orange}" stroke-width="10" stroke-linejoin="round"/>
-    <path d="M67 45 L113 154" stroke="${C.white}" stroke-width="10" stroke-linecap="round"/>
+    <path d="M67 45 L113 154" stroke="${fill}" stroke-width="10" stroke-linecap="round"/>
     <ellipse cx="80" cy="98" rx="103" ry="31" transform="rotate(-25 80 98)" fill="none" stroke="${C.indigo}" stroke-width="12"/>
   </g>`;
 }
 
-function baseDefs(titleSize = 74, bodySize = 40) {
+function brandHeader(light = true) {
+  const textColor = light ? C.white : C.midnight;
+  const subColor = light ? "#E3EBFF" : C.indigo;
+  return `${miniLogo(56, 44, 0.44, textColor)}
+  <text x="145" y="95" style="font: 900 28px Arial, sans-serif; fill: ${textColor}; letter-spacing: 1px;">YOUNGMINDS</text>
+  <text x="145" y="118" style="font: 700 14px Arial, sans-serif; fill: ${subColor};">afterschool și loc de joacă</text>`;
+}
+
+function defs() {
   return `<defs>
-    <linearGradient id="space" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5C70BE"/>
-      <stop offset="0.52" stop-color="#354282"/>
-      <stop offset="1" stop-color="#222A67"/>
+    <linearGradient id="overlayFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1F285F" stop-opacity="0.15"/>
+      <stop offset="0.65" stop-color="#12183D" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#0F1434" stop-opacity="0.88"/>
     </linearGradient>
-    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.98"/>
-      <stop offset="1" stop-color="#F6F8FF" stop-opacity="0.96"/>
+    <linearGradient id="softOverlay" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B356F" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#5668B5" stop-opacity="0.74"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#050A35" flood-opacity="0.24"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#091137" flood-opacity="0.22"/>
     </filter>
-    <clipPath id="photoClip"><rect x="90" y="220" width="900" height="520" rx="52"/></clipPath>
-    <clipPath id="splitPhotoClip"><rect x="90" y="255" width="430" height="780" rx="52"/></clipPath>
+    <clipPath id="rounded-lg"><rect x="0" y="0" width="1080" height="1350" rx="0"/></clipPath>
     <style>
-      .brand { font: 900 42px Arial, sans-serif; fill: ${C.white}; letter-spacing: 1.5px; }
-      .tagline { font: 800 23px Arial, sans-serif; fill: ${C.softBlue}; }
-      .kicker { font: 900 27px Arial, sans-serif; fill: ${C.yellow}; letter-spacing: 3px; text-transform: uppercase; }
-      .title { font: 900 ${titleSize}px Arial, sans-serif; fill: ${C.midnight}; }
-      .titleLight { font: 900 ${titleSize}px Arial, sans-serif; fill: ${C.white}; }
-      .body { font: 500 ${bodySize}px Arial, sans-serif; fill: #343B6B; }
-      .bodyLight { font: 650 ${bodySize}px Arial, sans-serif; fill: #EEF3FF; }
-      .footer { font: 800 28px Arial, sans-serif; fill: ${C.midnight}; }
-      .small { font: 800 24px Arial, sans-serif; fill: ${C.softBlue}; }
-      .counter { font: 900 28px Arial, sans-serif; fill: ${C.midnight}; }
+      .titleLight { font-family: Arial, sans-serif; font-weight: 900; fill: ${C.white}; }
+      .titleDark { font-family: Arial, sans-serif; font-weight: 900; fill: ${C.midnight}; }
+      .bodyLight { font-family: Arial, sans-serif; font-weight: 700; fill: ${C.white}; }
+      .bodyDark { font-family: Arial, sans-serif; font-weight: 700; fill: ${C.midnight}; }
+      .kickerLight { font-family: Georgia, serif; font-size: 26px; fill: ${C.white}; letter-spacing: 4px; text-transform: uppercase; }
+      .kickerDark { font-family: Arial, sans-serif; font-size: 26px; font-weight: 900; fill: ${C.yellow}; letter-spacing: 3px; text-transform: uppercase; }
+      .pillTextDark { font-family: Arial, sans-serif; font-size: 28px; font-weight: 900; fill: ${C.midnight}; }
+      .pillTextLight { font-family: Arial, sans-serif; font-size: 28px; font-weight: 900; fill: ${C.white}; }
+      .smallLight { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: ${C.white}; }
+      .smallDark { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: ${C.midnight}; }
     </style>
   </defs>`;
 }
 
-function background() {
-  return `<rect width="${WIDTH}" height="${HEIGHT}" fill="url(#space)"/>
-  <path d="M-80 260 C260 30 400 80 210 430 C90 650 240 710 510 585 C810 448 1040 210 1160 -50 L1160 0 L0 0 Z" fill="#7187D2" opacity="0.2"/>
-  <path d="M-90 1070 C180 860 470 930 680 760 C860 614 900 346 1180 250 L1180 1390 L-90 1390 Z" fill="#0D164D" opacity="0.18"/>
-  ${decorativeStars()}`;
-}
-
-function header() {
-  return `${miniLogo(80, 60, 0.52)}
-  <text x="190" y="117" class="brand">YOUNGMINDS</text>
-  <text x="190" y="150" class="tagline">afterschool si loc de joaca</text>`;
-}
-
-function photoOrPlaceholder(args: { x: number; y: number; width: number; height: number; clipId?: string; photoUrl?: string; theme?: string }) {
-  if (args.photoUrl) {
-    return `<image href="${escapeXml(args.photoUrl)}" x="${args.x}" y="${args.y}" width="${args.width}" height="${args.height}" preserveAspectRatio="xMidYMid slice"${args.clipId ? ` clip-path="url(#${args.clipId})"` : ""}/>`;
+function photoOrPlaceholder(x: number, y: number, width: number, height: number, photoUrl?: string, theme?: string, rx = 0) {
+  if (photoUrl) {
+    return `<image href="${escapeXml(photoUrl)}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"${rx ? ` clip-path="inset(0 round ${rx}px)"` : ""}/>`;
   }
-
-  const lines = wrapText(args.theme ? `Adaugă poză: ${args.theme}` : "Adaugă poză reală YoungMinds", 22, 3);
+  const lines = wrapText(theme ? `Imagine: ${theme}` : "Imagine YoungMinds", 18, 3);
   return `<g>
-    <rect x="${args.x}" y="${args.y}" width="${args.width}" height="${args.height}" rx="52" fill="#DDE7FF" opacity="0.95"/>
-    <circle cx="${args.x + args.width * 0.5}" cy="${args.y + args.height * 0.42}" r="92" fill="${C.yellow}" opacity="0.95"/>
-    <text x="${args.x + args.width * 0.5}" y="${args.y + args.height * 0.44}" text-anchor="middle" font-size="82">📷</text>
-    ${centeredTextBlock({ lines, x: args.x + args.width * 0.5, centerY: args.y + args.height * 0.68, lineHeight: 38, className: "body", anchor: "middle" })}
+    <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${rx}" fill="#D8E2FF"/>
+    <circle cx="${x + width / 2}" cy="${y + height / 2 - 40}" r="82" fill="${C.yellow}" opacity="0.92"/>
+    <text x="${x + width / 2}" y="${y + height / 2 - 15}" text-anchor="middle" style="font-size: 74px;">📷</text>
+    ${renderCenteredLines(lines, x + width / 2, y + height / 2 + 90, 34, "bodyDark")}
   </g>`;
 }
 
-function footer(cta: string, index: number, total: number) {
-  const progress = Math.round(((index + 1) / total) * 720);
-  return `<rect x="180" y="1160" width="720" height="12" rx="6" fill="#DDE6FF"/>
-  <rect x="180" y="1160" width="${progress}" height="12" rx="6" fill="${C.yellow}"/>
-  <text x="180" y="1224" class="footer">${escapeXml(cta)}</text>
-  <circle cx="918" cy="1212" r="42" fill="${C.yellow}"/>
-  <text x="905" y="1222" class="counter">${index + 1}</text>`;
+function pill(x: number, y: number, width: number, height: number, fill: string, text: string, textClass = "pillTextLight") {
+  return `<g>
+    <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" fill="${fill}" filter="url(#shadow)"/>
+    <text x="${x + width / 2}" y="${y + height / 2 + 10}" text-anchor="middle" class="${textClass}">${escapeXml(text)}</text>
+  </g>`;
 }
 
-function buildTextCard(args: { kicker: string; title: string; body: string; cta: string; index: number; total: number }) {
-  const titleSize = fontSizeFor(args.title, 82, 58, [[45, 8], [70, 8], [95, 8]]);
-  const titleLines = wrapText(args.title, titleSize > 70 ? 18 : 24, 4);
-  const bodyLines = wrapText(args.body, 36, 5);
+function chipsRow(items: string[], x: number, y: number) {
+  return items
+    .slice(0, 3)
+    .map((item, index) => {
+      const label = escapeXml(item);
+      const width = Math.min(250, 30 + label.length * 12);
+      const offset = index === 0 ? 0 : index === 1 ? 195 : 390;
+      return `<g>
+        <rect x="${x + offset}" y="${y}" width="${width}" height="48" rx="24" fill="#FF9E1A"/>
+        <text x="${x + offset + width / 2}" y="${y + 31}" text-anchor="middle" style="font: 900 18px Arial, sans-serif; fill: ${C.white};">${label}</text>
+      </g>`;
+    })
+    .join("");
+}
+
+function baseBackground() {
+  return `<rect width="${WIDTH}" height="${HEIGHT}" fill="#1F275E"/>`;
+}
+
+function titleWordHighlight(title: string) {
+  const words = title.trim().split(/\s+/);
+  if (words.length < 2) return { lead: title, accent: "" };
+  return {
+    lead: words.slice(0, -1).join(" "),
+    accent: words[words.length - 1]
+  };
+}
+
+function overlayPhotoLayout(args: { title: string; body: string; kicker: string; photoUrl?: string; photoTheme?: string }) {
+  const titleSize = fontSizeFor(args.title, 96, 68, [[20, 4], [32, 6], [48, 8], [64, 10]]);
+  const titleLines = wrapText(args.title, titleSize >= 88 ? 18 : 22, 4);
+  const bodyLines = wrapText(args.body, 36, 3);
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  ${baseDefs(titleSize, 40)}
-  ${background()}
-  ${header()}
-  <rect x="90" y="245" width="900" height="870" rx="64" fill="url(#card)" filter="url(#shadow)"/>
-  <text x="540" y="355" text-anchor="middle" class="kicker">${escapeXml(args.kicker)}</text>
-  ${centeredTextBlock({ lines: titleLines, x: 540, centerY: 585, lineHeight: titleSize * 1.05, className: "title" })}
-  ${centeredTextBlock({ lines: bodyLines, x: 540, centerY: 880, lineHeight: 52, className: "body" })}
-  ${footer(args.cta, args.index, args.total)}
-</svg>`;
+    ${defs()}
+    ${baseBackground()}
+    ${photoOrPlaceholder(0, 0, WIDTH, HEIGHT, args.photoUrl, args.photoTheme)}
+    <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#overlayFade)"/>
+    ${brandHeader(true)}
+    <text x="684" y="84" class="kickerLight">${escapeXml(args.kicker.toUpperCase())}</text>
+    ${renderLines(titleLines, 60, 740, titleSize * 0.95, `titleLight`)}
+    ${renderLines(bodyLines, 60, 1038, 58, `bodyLight`)}
+    ${pill(60, 1180, 365, 80, C.yellow, `📅  ${DEFAULT_DATE}`, "pillTextDark")}
+    ${pill(678, 1180, 342, 84, C.indigo, `📞  ${DEFAULT_PHONE}`, "pillTextLight")}
+  </svg>`;
 }
 
-function buildPhotoHero(args: { kicker: string; title: string; body: string; cta: string; index: number; total: number; photoUrl?: string; photoTheme?: string }) {
-  const titleSize = fontSizeFor(args.title, 62, 46, [[42, 6], [70, 8]]);
-  const titleLines = wrapText(args.title, 25, 3);
-  const bodyLines = wrapText(args.body, 38, 3);
+function splitShowcaseLayout(args: { title: string; body: string; kicker: string; photoUrl?: string; photoTheme?: string; chips: string[] }) {
+  const titleSize = fontSizeFor(args.title, 90, 62, [[18, 4], [28, 8], [38, 8], [52, 8]]);
+  const titleLines = wrapText(args.title, 15, 4);
+  const bodyLines = wrapText(args.body, 23, 4);
+  return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+    ${defs()}
+    <rect width="540" height="1350" fill="#646FBC"/>
+    <rect x="540" width="540" height="1350" fill="#F4F4F4"/>
+    ${photoOrPlaceholder(540, 0, 540, 1350, args.photoUrl, args.photoTheme)}
+    ${brandHeader(true)}
+    <text x="55" y="228" class="kickerDark">${escapeXml(args.kicker)}</text>
+    ${renderLines(titleLines, 55, 360, titleSize * 0.95, "titleLight")}
+    ${renderLines(bodyLines, 55, 800, 54, "bodyLight")}
+    ${chipsRow(args.chips, 55, 1048)}
+    ${pill(58, 1186, 364, 82, C.indigo, `📞  ${DEFAULT_PHONE}`, "pillTextLight")}
+    ${pill(815, 1188, 225, 72, C.yellow, DEFAULT_DATE.replace("2026", ""), "pillTextDark")}
+  </svg>`;
+}
+
+function bottomBandLayout(args: { title: string; body: string; photoUrl?: string; photoTheme?: string }) {
+  const title = titleWordHighlight(args.title);
+  const leadSize = fontSizeFor(title.lead, 78, 52, [[18, 4], [32, 8], [46, 10]]);
+  const accentSize = Math.max(leadSize, 66);
+  const leadLines = wrapText(title.lead, 20, 3);
+  const accentLine = escapeXml(title.accent || "");
+  const bodyLines = wrapText(args.body, 40, 2);
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  ${baseDefs(titleSize, 36)}
-  ${background()}
-  ${header()}
-  ${photoOrPlaceholder({ x: 90, y: 220, width: 900, height: 520, clipId: "photoClip", photoUrl: args.photoUrl, theme: args.photoTheme })}
-  <rect x="90" y="705" width="900" height="420" rx="54" fill="url(#card)" filter="url(#shadow)"/>
-  <text x="150" y="790" class="kicker">${escapeXml(args.kicker)}</text>
-  ${centeredTextBlock({ lines: titleLines, x: 540, centerY: 905, lineHeight: titleSize * 1.02, className: "title" })}
-  ${centeredTextBlock({ lines: bodyLines, x: 540, centerY: 1044, lineHeight: 44, className: "body" })}
-  ${footer(args.cta, args.index, args.total)}
-</svg>`;
+    ${defs()}
+    ${baseBackground()}
+    ${photoOrPlaceholder(0, 0, WIDTH, 890, args.photoUrl, args.photoTheme)}
+    <rect width="${WIDTH}" height="890" fill="url(#overlayFade)" opacity="0.35"/>
+    ${brandHeader(true)}
+    ${pill(730, 54, 292, 72, C.yellow, DEFAULT_DATE, "pillTextDark")}
+    <rect x="0" y="846" width="1080" height="504" fill="${C.yellow}"/>
+    ${renderLines(leadLines, 62, 958, leadSize * 0.92, "titleDark")}
+    <text x="62" y="${1070 + (leadLines.length - 1) * leadSize * 0.92}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${accentSize}px; fill: #FF9E1A;">${accentLine}</text>
+    ${renderLines(bodyLines, 62, 1170, 48, "bodyDark")}
+    ${pill(674, 1188, 350, 84, C.indigo, `📞  ${DEFAULT_PHONE}`, "pillTextLight")}
+  </svg>`;
 }
 
-function buildPhotoSplit(args: { kicker: string; title: string; body: string; cta: string; index: number; total: number; photoUrl?: string; photoTheme?: string }) {
-  const titleSize = fontSizeFor(args.title, 58, 43, [[38, 6], [62, 8]]);
-  const titleLines = wrapText(args.title, 18, 4);
-  const bodyLines = wrapText(args.body, 23, 6);
+function mosaicPromoLayout(args: { title: string; body: string; photoUrl?: string; photoTheme?: string }) {
+  const title = titleWordHighlight(args.title);
+  const leadSize = fontSizeFor(title.lead, 88, 62, [[16, 4], [26, 8], [38, 8]]);
+  const leadLines = wrapText(title.lead, 16, 2);
+  const accent = escapeXml(title.accent || "");
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  ${baseDefs(titleSize, 34)}
-  ${background()}
-  ${header()}
-  <rect x="70" y="220" width="940" height="900" rx="64" fill="#FFFFFF" opacity="0.18"/>
-  ${photoOrPlaceholder({ x: 90, y: 255, width: 430, height: 780, clipId: "splitPhotoClip", photoUrl: args.photoUrl, theme: args.photoTheme })}
-  <rect x="495" y="255" width="495" height="780" rx="52" fill="url(#card)" filter="url(#shadow)"/>
-  <text x="555" y="350" class="kicker">${escapeXml(args.kicker)}</text>
-  ${centeredTextBlock({ lines: titleLines, x: 742, centerY: 545, lineHeight: titleSize * 1.03, className: "title" })}
-  ${centeredTextBlock({ lines: bodyLines, x: 742, centerY: 830, lineHeight: 45, className: "body" })}
-  ${footer(args.cta, args.index, args.total)}
-</svg>`;
+    ${defs()}
+    ${photoOrPlaceholder(0, 0, 540, 675, args.photoUrl, args.photoTheme)}
+    ${photoOrPlaceholder(540, 0, 540, 675, args.photoUrl, args.photoTheme)}
+    ${photoOrPlaceholder(0, 675, 540, 675, args.photoUrl, args.photoTheme)}
+    ${photoOrPlaceholder(540, 675, 540, 675, args.photoUrl, args.photoTheme)}
+    <rect width="1080" height="1350" fill="url(#softOverlay)"/>
+    ${brandHeader(true)}
+    ${renderLines(leadLines, 58, 462, leadSize * 0.92, "titleLight")}
+    <text x="${58 + Math.max(...leadLines.map((line) => line.length), 10) * 22}" y="${462 + (leadLines.length - 1) * leadSize * 0.92}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${leadSize}px; fill: ${C.yellow};">${accent}</text>
+    ${renderCenteredLines(wrapText(args.body, 38, 2), 540, 710, 54, "bodyLight")}
+    ${pill(179, 795, 722, 84, C.yellow, `📞  Sună acum: ${DEFAULT_PHONE}`, "pillTextDark")}
+    <text x="540" y="995" text-anchor="middle" style="font: 700 28px Georgia, serif; fill: ${C.white};">${escapeXml(`${DEFAULT_DATE} · Buzău`)}</text>
+  </svg>`;
 }
 
-function svgDataUrl(svg: string) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+function chooseStylePreset(post: GeneratedPost, explicit?: StylePreset): StylePreset {
+  if (explicit) return explicit;
+  if (post.stylePreset) return post.stylePreset;
+  if (post.templateType === "photo_split") return "split_showcase";
+  if (post.templateType === "photo_hero") return "overlay_photo";
+  if (post.templateType === "carousel_education") return "bottom_band";
+  return post.photoRequired ? "overlay_photo" : "mosaic_promo";
 }
 
 function bodyFromPost(post: GeneratedPost) {
   if (post.designNotes) return post.designNotes;
   const caption = post.caption.replace(/\s+/g, " ").trim();
-  return caption.length > 170 ? `${caption.slice(0, 170).trim()}…` : caption;
+  return caption.length > 160 ? `${caption.slice(0, 160).trim()}…` : caption;
 }
 
-function buildMarketingSvg(post: GeneratedPost, args: { index: number; total: number; title: string; body: string; photoUrl?: string; templateType?: TemplateType }) {
-  const template = args.templateType ?? post.templateType ?? (post.photoRequired ? "photo_split" : "text_card");
-  const kicker = post.format.replace("instagram_", "").replace("_", " ");
+function chipsFromPost(post: GeneratedPost) {
+  if (post.hashtags?.length) {
+    return post.hashtags.slice(0, 3).map((tag) => tag.replace(/^#/, ""));
+  }
+  if (post.photoTheme) {
+    return post.photoTheme.split(/[,·]/).map((item) => item.trim()).filter(Boolean).slice(0, 3);
+  }
+  return ["YoungMinds", "Atelier", "Joacă"];
+}
+
+function buildMarketingSvg(post: GeneratedPost, args: { title: string; body: string; photoUrl?: string; stylePreset?: StylePreset; templateType?: TemplateType }) {
+  const stylePreset = chooseStylePreset(post, args.stylePreset);
+  const kicker = post.format.replace("instagram_", "").replace(/_/g, " ");
   const common = {
-    kicker,
     title: args.title,
     body: args.body,
-    cta: post.cta || post.hashtags.slice(0, 2).join(" "),
-    index: args.index,
-    total: args.total,
+    kicker,
     photoUrl: args.photoUrl,
     photoTheme: post.photoTheme
   };
 
-  if (template === "photo_hero") return buildPhotoHero(common);
-  if (template === "photo_split") return buildPhotoSplit(common);
-  if (template === "carousel_education") return buildTextCard(common);
-  return buildTextCard(common);
+  if (stylePreset === "split_showcase") {
+    return splitShowcaseLayout({ ...common, chips: chipsFromPost(post) });
+  }
+  if (stylePreset === "bottom_band") {
+    return bottomBandLayout(common);
+  }
+  if (stylePreset === "mosaic_promo") {
+    return mosaicPromoLayout(common);
+  }
+  return overlayPhotoLayout(common);
 }
 
 export function buildVisualAssets(post: GeneratedPost, postIndex: number, options: VisualAssetOptions = {}): VisualAsset[] {
   const base = safeFilename(`${postIndex + 1}-${post.title}`);
-  const templateType = options.templateType ?? post.templateType;
 
   if (post.carouselSlides?.length) {
     return post.carouselSlides.map((slide, index) => {
       const svg = buildMarketingSvg(post, {
-        index,
-        total: post.carouselSlides?.length ?? 1,
         title: slide.title,
         body: slide.body,
-        photoUrl: index === 0 ? options.photoUrl : undefined,
-        templateType: index === 0 && options.photoUrl ? "photo_hero" : "carousel_education"
+        photoUrl: options.photoUrl,
+        stylePreset: index === 0 ? chooseStylePreset(post) : "bottom_band",
+        templateType: options.templateType
       });
 
       return {
@@ -275,12 +332,10 @@ export function buildVisualAssets(post: GeneratedPost, postIndex: number, option
   }
 
   const svg = buildMarketingSvg(post, {
-    index: 0,
-    total: 1,
     title: post.hook || post.title,
     body: bodyFromPost(post),
     photoUrl: options.photoUrl,
-    templateType
+    templateType: options.templateType
   });
 
   return [{ filename: `${base}.png`, label: "Post visual", svg, dataUrl: svgDataUrl(svg) }];
