@@ -17,7 +17,7 @@ const brand = `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`;
 
 export function ScriptToContentForm() {
   const [script, setScript] = useState("");
-  const [audience, setAudience] = useState(YOUNGMINDS_BRAND.audience);
+  const [audience, setAudience] = useState<string>(YOUNGMINDS_BRAND.audience);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
