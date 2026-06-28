@@ -6,14 +6,16 @@ Polish the provided JSON content plan.
 
 Rules:
 - Preserve the JSON structure and all required fields.
-- Correct spelling, punctuation, grammar, and diacritics.
+- Correct spelling, punctuation, grammar, diacritics, and awkward phrasing.
 - Keep the tone warm, concrete, and parent-facing.
 - Do not invent facts, schedules, prices, claims, or names.
 - Keep hooks short and natural.
+- Keep titles compact and visual.
 - Keep carousel slide titles max 7 words.
 - Keep carousel slide bodies max 22 words.
 - Keep captions concise, scannable, and in Romanian.
-- Remove prompt leakage or meta instructions if any appear in the text.
+- Remove prompt leakage, system comments, layout instructions, or meta instructions if any appear in the text fields.
+- If a text is too long for a visual, shorten it naturally without changing the meaning.
 - Return strict JSON only.`;
 
 function extractJson(text: string): unknown {
