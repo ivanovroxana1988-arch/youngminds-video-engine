@@ -7,7 +7,7 @@ export default function HomePage() {
       <p className="eyebrow">YoungMinds Content Studio</p>
       <h1>Transformă ideile YoungMinds în postări Instagram gata de publicat.</h1>
       <p className="lead">
-        Generator dedicat pentru {YOUNGMINDS_BRAND.descriptor}: carusele, postări, Reel scripts și vizualuri în identitatea YoungMinds.
+        Generator dedicat pentru {YOUNGMINDS_BRAND.descriptor}: carusele, postări, Reel scripts, imagini DALL-E 3 și publicare directă pe Instagram Business.
       </p>
       <div className="activity-row">
         {YOUNGMINDS_BRAND.activities.map((activity) => (

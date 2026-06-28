@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { VisualAssetExporter } from "@/components/VisualAssetExporter";
+import { MetaTokenStatus } from "@/components/MetaTokenStatus";
 import { YOUNGMINDS_BRAND } from "@/lib/brand/youngminds";
-import { ContentPlan } from "@/types/content";
+import { ContentPlan, GeneratedPost } from "@/types/content";
 
 const QUICK_IDEAS = [
   "Promovează robotica pentru copiii care iubesc construcțiile și experimentele.",
@@ -12,26 +13,31 @@ const QUICK_IDEAS = [
   "Fă o serie despre activitățile YoungMinds: pian, tae-kwon do, robotică, limbi străine și yoga."
 ];
 
+const brand = `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`;
+
 export function ScriptToContentForm() {
   const [script, setScript] = useState("");
   const [audience, setAudience] = useState(YOUNGMINDS_BRAND.audience);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scheduleResult, setScheduleResult] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<string | null>(null);
+  const [postImages, setPostImages] = useState<Record<number, string>>({});
+  const [generatingImages, setGeneratingImages] = useState<Record<number, boolean>>({});
 
   async function generate() {
     setLoading(true);
     setError(null);
-    setScheduleResult(null);
+    setActionResult(null);
     setPlan(null);
+    setPostImages({});
 
     const response = await fetch("/api/content/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         script,
-        brand: `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`,
+        brand,
         audience,
         goal: YOUNGMINDS_BRAND.defaultGoal,
         language: "Romanian",
@@ -50,23 +56,64 @@ export function ScriptToContentForm() {
     setPlan(data.plan);
   }
 
-  async function schedule() {
+  async function generateImageForPost(post: GeneratedPost, index: number) {
+    setGeneratingImages((prev) => ({ ...prev, [index]: true }));
+
+    const response = await fetch("/api/meta/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visualBrief: post.visualBrief, brand: YOUNGMINDS_BRAND.name, postIndex: index })
+    });
+
+    const data = await response.json();
+    setGeneratingImages((prev) => ({ ...prev, [index]: false }));
+
+    if (response.ok && data.imageUrl) {
+      setPostImages((prev) => ({ ...prev, [index]: data.imageUrl }));
+    }
+  }
+
+  async function publishNow(post: GeneratedPost) {
     if (!plan) return;
     setLoading(true);
     setError(null);
-    setScheduleResult(null);
+    setActionResult(null);
 
-    const tomorrowAt9 = new Date();
-    tomorrowAt9.setDate(tomorrowAt9.getDate() + 1);
-    tomorrowAt9.setHours(9, 0, 0, 0);
+    const response = await fetch("/api/meta/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ post, brand: YOUNGMINDS_BRAND.name })
+    });
 
-    const response = await fetch("/api/content/schedule", {
+    const data = await response.json();
+    setLoading(false);
+
+    if (!response.ok) {
+      setError(data.error ?? "Publicarea a eșuat.");
+      return;
+    }
+
+    setActionResult(`Postare publicată pe Instagram! ID: ${data.postId}`);
+  }
+
+  async function scheduleAll() {
+    if (!plan) return;
+    setLoading(true);
+    setError(null);
+    setActionResult(null);
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1);
+    startDate.setHours(9, 0, 0, 0);
+
+    const response = await fetch("/api/meta/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        startDateIso: tomorrowAt9.toISOString(),
-        daysBetweenPosts: 1,
-        posts: plan.posts
+        posts: plan.posts,
+        brand: YOUNGMINDS_BRAND.name,
+        startDateIso: startDate.toISOString(),
+        daysBetweenPosts: 1
       })
     });
 
@@ -74,11 +121,11 @@ export function ScriptToContentForm() {
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error ?? "Nu s-a putut programa în Postiz.");
+      setError(data.error ?? "Programarea a eșuat.");
       return;
     }
 
-    setScheduleResult(`Trimis în Postiz: ${data.results?.length ?? plan.posts.length} postări.`);
+    setActionResult(`Programate ${data.scheduled} postări pe Instagram, începând de mâine la ora 09:00.`);
   }
 
   return (
@@ -88,7 +135,7 @@ export function ScriptToContentForm() {
           <p className="eyebrow">YoungMinds Content Studio</p>
           <h1>Postări Instagram pentru afterschool și locul de joacă.</h1>
           <p className="lead">
-            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts și asset-uri vizuale în universul nostru: albastru cosmic, accente galbene, stele, joacă și învățare. Nu încă o unealtă generică, slavă internetului.
+            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts și imagini generate cu DALL-E 3 în universul nostru: albastru cosmic, accente galbene, stele, joacă și învățare.
           </p>
           <div className="activity-row">
             {YOUNGMINDS_BRAND.activities.map((activity) => (
@@ -104,6 +151,8 @@ export function ScriptToContentForm() {
       </section>
 
       <section className="card" style={{ marginTop: 24 }}>
+        <MetaTokenStatus />
+
         <div className="grid">
           <div>
             <label htmlFor="audience">Audiență</label>
@@ -135,13 +184,13 @@ export function ScriptToContentForm() {
           <button className="button" onClick={generate} disabled={loading || script.length < 20}>
             {loading ? "Lucrează..." : "Generează postările YoungMinds"}
           </button>
-          <button className="button secondary" onClick={schedule} disabled={loading || !plan}>
-            Trimite în Postiz
+          <button className="button secondary" onClick={scheduleAll} disabled={loading || !plan}>
+            Programează săptămâna pe Instagram
           </button>
         </div>
 
         {error && <p className="error">{error}</p>}
-        {scheduleResult && <p>{scheduleResult}</p>}
+        {actionResult && <p style={{ color: "#065f46", fontWeight: 500 }}>{actionResult}</p>}
       </section>
 
       {plan && (
@@ -160,6 +209,23 @@ export function ScriptToContentForm() {
               <p><strong>Hook:</strong> {post.hook}</p>
               <pre>{post.caption}</pre>
               <p><strong>Vizual:</strong> {post.visualBrief}</p>
+
+              {postImages[index] ? (
+                <img
+                  src={postImages[index]}
+                  alt={`Imagine generată pentru postarea ${index + 1}`}
+                  style={{ width: "100%", maxWidth: 400, borderRadius: 8, marginBottom: 12 }}
+                />
+              ) : (
+                <button
+                  className="button secondary"
+                  style={{ marginBottom: 12 }}
+                  onClick={() => generateImageForPost(post, index)}
+                  disabled={generatingImages[index]}
+                >
+                  {generatingImages[index] ? "Generez imaginea..." : "Generează imagine DALL-E 3"}
+                </button>
+              )}
 
               {post.carouselSlides?.length ? (
                 <details>
@@ -192,7 +258,17 @@ export function ScriptToContentForm() {
               <p><strong>CTA:</strong> {post.cta}</p>
               <p>{post.hashtags.join(" ")}</p>
 
-              <VisualAssetExporter post={post} postIndex={index} />
+              <div className="actions" style={{ marginTop: 12 }}>
+                <button
+                  className="button"
+                  onClick={() => publishNow(post)}
+                  disabled={loading}
+                >
+                  Publică acum pe Instagram
+                </button>
+              </div>
+
+              <VisualAssetExporter post={post} postIndex={index} brand={YOUNGMINDS_BRAND.name} />
             </article>
           ))}
         </section>
