@@ -10,11 +10,12 @@ export async function uploadImageToStorage(temporaryUrl: string, fileName: strin
 
   const imageBuffer = await imageResponse.arrayBuffer();
   const supabase = createServiceSupabaseClient();
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "post-images";
 
   const path = `posts/${Date.now()}-${fileName}.jpg`;
 
   const { error } = await supabase.storage
-    .from("post-images")
+    .from(bucket)
     .upload(path, imageBuffer, {
       contentType: "image/jpeg",
       upsert: false
@@ -24,7 +25,7 @@ export async function uploadImageToStorage(temporaryUrl: string, fileName: strin
     throw new Error(`Supabase Storage upload failed: ${error.message}`);
   }
 
-  const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
 
   return data.publicUrl;
 }
