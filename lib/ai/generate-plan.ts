@@ -25,9 +25,11 @@ Copy quality rules:
 
 Design and photo rules:
 - Every post must include templateType: "photo_split", "photo_hero", "text_card", or "carousel_education".
-- Use "photo_split" or "photo_hero" for activity/promotion posts that need emotion and trust.
-- Use "carousel_education" for educational explainers.
-- Use "text_card" only for short insights or reminders.
+- Every post must include stylePreset: "overlay_photo", "split_showcase", "bottom_band", or "mosaic_promo".
+- Use "overlay_photo" for strong photo-led enrolment or emotional activity posts.
+- Use "split_showcase" when left text + right photo works well.
+- Use "bottom_band" for playful community posts with strong activity photos.
+- Use "mosaic_promo" for collage-style promo posts or final availability posts.
 - Every post must include imageType: "real_photo", "ai_image", "graphic", or "mixed".
 - For YoungMinds, prefer real_photo or mixed whenever the post is about space, children, activities, robotics, piano, yoga, tae-kwon do, STEM, or afterschool life.
 - Every post must include photoTheme: a short Romanian phrase such as "copii la robotică", "pian", "yoga copii", "spațiu de joacă", "STEM la masă".
@@ -108,10 +110,18 @@ Audience: ${input.audience ?? YOUNGMINDS_BRAND.audience}
 Goal: ${input.goal ?? YOUNGMINDS_BRAND.defaultGoal}
 Number of posts: ${count}
 
+Visual identity grounding:
+- YoungMinds uses real photos of children, activities, outdoor play space, and creative workshops.
+- Common layouts: photo background with large headline overlay; split layout with colored text panel on the left and photo on the right; bottom colored band over a full photo; 2x2 or collage promo layout.
+- Logo is small, usually top-left or centered small.
+- Use white headlines, yellow highlights, blue-purple panels, rounded pills for date and phone number.
+- Design should feel warm, simple, promotional, and local, not corporate.
+
 Content strategy:
 - Generate fewer, stronger posts. Quality over volume.
 - Mix parent education with warm promotion.
 - Include at least one carousel_education post and at least one photo-led post.
+- Include at least one post that could work as an enrolment / final spots / summer promo post.
 - Use concrete situations: copilul construiește, testează, greșește, repară, colaborează, întreabă, se concentrează.
 - Make benefits realistic: poate susține, exersează, încurajează, ajută copilul să observe.
 - Do not promise guaranteed outcomes.
@@ -125,6 +135,7 @@ Required JSON shape:
     {
       "format": "instagram_post | instagram_carousel | reel_script | story",
       "templateType": "photo_split | photo_hero | text_card | carousel_education",
+      "stylePreset": "overlay_photo | split_showcase | bottom_band | mosaic_promo",
       "imageType": "real_photo | ai_image | graphic | mixed",
       "photoTheme": "short Romanian photo direction",
       "photoRequired": true,
