@@ -225,6 +225,43 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; colo
 }
 .asset-actions span { color: var(--muted); font-weight: 800; }
 .asset-status { color: var(--accent-dark); font-weight: 800; }
+.library-grid,
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.library-card,
+.picker-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 8px;
+  background: white;
+}
+.picker-card {
+  cursor: pointer;
+  text-align: left;
+}
+.library-thumb,
+.picker-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #dbe4ff;
+}
+.library-meta,
+.picker-card span {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 @media (max-width: 640px) {
   .asset-header { align-items: flex-start; flex-direction: column; }
   .brand-logo-card { width: min(100%, 320px); }
