@@ -16,6 +16,7 @@ const schema = z.object({
     hashtags: z.array(z.string()).optional()
   }),
   brand: z.string().optional(),
+  imageUrl: z.string().optional(),
   contentScriptId: z.string().uuid().optional()
 });
 
@@ -28,13 +29,21 @@ function buildCaption(post: z.infer<typeof schema>["post"]): string {
   return parts.join("\n\n");
 }
 
+function toPublicImageUrl(imageUrl: string | undefined, req: NextRequest) {
+  if (!imageUrl) return undefined;
+  return new URL(imageUrl, req.nextUrl.origin).toString();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { post, brand, contentScriptId } = schema.parse(body);
+    const { post, brand, imageUrl: selectedImageUrl, contentScriptId } = schema.parse(body);
 
-    const dalleUrl = await generatePostImage(post.visualBrief, { brand });
-    const imageUrl = await uploadImageToStorage(dalleUrl, `publish-${Date.now()}`);
+    let imageUrl = toPublicImageUrl(selectedImageUrl, req);
+    if (!imageUrl) {
+      const dalleUrl = await generatePostImage(post.visualBrief, { brand });
+      imageUrl = await uploadImageToStorage(dalleUrl, `publish-${Date.now()}`);
+    }
 
     const caption = buildCaption(post);
     const creationId = await createMediaContainer(imageUrl, caption);
