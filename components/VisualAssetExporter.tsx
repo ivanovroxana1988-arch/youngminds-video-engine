@@ -26,7 +26,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function resolvePhotoUrl(photoUrl?: string) {
   if (!photoUrl) return undefined;
-  if (photoUrl.startsWith("http")) return photoUrl;
+  if (photoUrl.startsWith("http") || photoUrl.startsWith("data:")) return photoUrl;
   if (typeof window === "undefined") return photoUrl;
   return new URL(photoUrl, window.location.origin).toString();
 }
@@ -61,6 +61,13 @@ async function svgToPngBlob(asset: VisualAsset) {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+function getQualityLabel(score: number) {
+  if (score >= 90) return "foarte bun";
+  if (score >= 78) return "bun";
+  if (score >= 64) return "ok, dar verifică";
+  return "necesită verificare";
 }
 
 export function VisualAssetExporter({ post, postIndex, photoUrl, templateType }: VisualAssetExporterProps) {
@@ -116,6 +123,25 @@ export function VisualAssetExporter({ post, postIndex, photoUrl, templateType }:
         {assets.map((asset) => (
           <article className="asset-card" key={asset.filename}>
             <img src={asset.dataUrl} alt={asset.label} className="asset-preview" />
+            <div style={{ marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span className="meta-chip">Scor: {asset.qualityScore}/100</span>
+                <span className={asset.warnings.length ? "meta-chip warning" : "meta-chip"}>
+                  {getQualityLabel(asset.qualityScore)}
+                </span>
+              </div>
+              {asset.warnings.length ? (
+                <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "#a31562" }}>
+                  {asset.warnings.map((warning, index) => (
+                    <li key={`${asset.filename}-${index}`}>{warning}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ marginTop: 10, color: "#065f46", fontWeight: 700 }}>
+                  Nu am detectat probleme evidente de layout.
+                </p>
+              )}
+            </div>
             <div className="asset-actions">
               <span>{asset.label}</span>
               <button className="button secondary" type="button" onClick={() => downloadPng(asset)}>
