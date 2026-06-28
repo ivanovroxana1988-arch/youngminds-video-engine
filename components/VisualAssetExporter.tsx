@@ -9,7 +9,6 @@ import { GeneratedPost } from "@/types/content";
 type VisualAssetExporterProps = {
   post: GeneratedPost;
   postIndex: number;
-  brand: string;
 };
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -39,7 +38,7 @@ async function svgToPngBlob(asset: VisualAsset) {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas context is not available.");
 
-    context.fillStyle = "#fbf7ff";
+    context.fillStyle = "#26336F";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
@@ -54,9 +53,9 @@ async function svgToPngBlob(asset: VisualAsset) {
   }
 }
 
-export function VisualAssetExporter({ post, postIndex, brand }: VisualAssetExporterProps) {
+export function VisualAssetExporter({ post, postIndex }: VisualAssetExporterProps) {
   const [status, setStatus] = useState<string | null>(null);
-  const assets = useMemo(() => buildVisualAssets(post, postIndex, brand), [post, postIndex, brand]);
+  const assets = useMemo(() => buildVisualAssets(post, postIndex), [post, postIndex]);
 
   async function downloadPng(asset: VisualAsset) {
     setStatus(`Export ${asset.label}...`);
@@ -83,8 +82,8 @@ export function VisualAssetExporter({ post, postIndex, brand }: VisualAssetExpor
     <section className="asset-box">
       <div className="asset-header">
         <div>
-          <p className="eyebrow">Assets vizuale</p>
-          <h4>Preview 1080 × 1350</h4>
+          <p className="eyebrow">Postari create</p>
+          <h4>Preview YoungMinds 1080 × 1350</h4>
         </div>
         <button className="button secondary" type="button" onClick={downloadAllPng}>
           Descarcă toate PNG

@@ -1,0 +1,12 @@
+<svg width="720" height="480" viewBox="0 0 720 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="480" fill="white"/>
+  <g transform="translate(276 46)">
+    <path d="M92 30 C116 30 131 47 128 71 C152 74 166 91 166 116 C166 144 143 166 115 166 C98 166 83 158 74 146 C64 159 49 166 31 166 C10 166 -6 150 -6 128 C-6 112 2 99 15 92 C5 80 4 62 15 49 C30 31 55 34 69 52 C75 39 83 30 92 30Z" fill="#FFC51B" stroke="#F59B23" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M67 45 L113 154" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <ellipse cx="80" cy="98" rx="103" ry="31" transform="rotate(-25 80 98)" fill="none" stroke="#5668B5" stroke-width="12"/>
+    <path d="M-58 18 l12 24 24 12 -24 12 -12 24 -12 -24 -24 -12 24 -12z" fill="#FFC51B"/>
+    <path d="M178 104 l9 18 18 9 -18 9 -9 18 -9 -18 -18 -9 18 -9z" fill="#5668B5"/>
+  </g>
+  <text x="360" y="304" text-anchor="middle" font-family="Arial, sans-serif" font-size="76" font-weight="900" letter-spacing="4" fill="#5668B5">YOUNGMINDS</text>
+  <text x="360" y="364" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#9FB6E3">afterschool si loc de joaca</text>
+</svg>
