@@ -4,11 +4,13 @@
 
 import { useMemo, useState } from "react";
 import { buildVisualAssets, VisualAsset } from "@/lib/creative/svg-assets";
-import { GeneratedPost } from "@/types/content";
+import { GeneratedPost, TemplateType } from "@/types/content";
 
 type VisualAssetExporterProps = {
   post: GeneratedPost;
   postIndex: number;
+  photoUrl?: string;
+  templateType?: TemplateType;
 };
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -29,6 +31,7 @@ async function svgToPngBlob(asset: VisualAsset) {
   try {
     const image = new Image();
     image.decoding = "async";
+    image.crossOrigin = "anonymous";
     image.src = url;
     await image.decode();
 
@@ -44,7 +47,7 @@ async function svgToPngBlob(asset: VisualAsset) {
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((blob) => {
-        if (!blob) reject(new Error("Could not export PNG."));
+        if (!blob) reject(new Error("Could not export PNG. Dacă ai folosit o poză externă, încearcă o poză din /public/photos sau un URL cu CORS permis."));
         else resolve(blob);
       }, "image/png", 0.95);
     });
@@ -53,25 +56,36 @@ async function svgToPngBlob(asset: VisualAsset) {
   }
 }
 
-export function VisualAssetExporter({ post, postIndex }: VisualAssetExporterProps) {
+export function VisualAssetExporter({ post, postIndex, photoUrl, templateType }: VisualAssetExporterProps) {
   const [status, setStatus] = useState<string | null>(null);
-  const assets = useMemo(() => buildVisualAssets(post, postIndex), [post, postIndex]);
+  const assets = useMemo(
+    () => buildVisualAssets(post, postIndex, { photoUrl, templateType }),
+    [post, postIndex, photoUrl, templateType]
+  );
 
   async function downloadPng(asset: VisualAsset) {
-    setStatus(`Export ${asset.label}...`);
-    const blob = await svgToPngBlob(asset);
-    downloadBlob(blob, asset.filename);
-    setStatus("PNG exportat.");
+    try {
+      setStatus(`Export ${asset.label}...`);
+      const blob = await svgToPngBlob(asset);
+      downloadBlob(blob, asset.filename);
+      setStatus("PNG exportat.");
+    } catch (error: any) {
+      setStatus(error.message ?? "Nu am putut exporta PNG-ul.");
+    }
   }
 
   async function downloadAllPng() {
-    setStatus(`Export ${assets.length} asset-uri...`);
-    for (const asset of assets) {
-      const blob = await svgToPngBlob(asset);
-      downloadBlob(blob, asset.filename);
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    try {
+      setStatus(`Export ${assets.length} asset-uri...`);
+      for (const asset of assets) {
+        const blob = await svgToPngBlob(asset);
+        downloadBlob(blob, asset.filename);
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+      setStatus("Toate PNG-urile au fost exportate.");
+    } catch (error: any) {
+      setStatus(error.message ?? "Nu am putut exporta toate PNG-urile.");
     }
-    setStatus("Toate PNG-urile au fost exportate.");
   }
 
   function downloadSvg(asset: VisualAsset) {
@@ -82,7 +96,7 @@ export function VisualAssetExporter({ post, postIndex }: VisualAssetExporterProp
     <section className="asset-box">
       <div className="asset-header">
         <div>
-          <p className="eyebrow">Postari create</p>
+          <p className="eyebrow">Postări create</p>
           <h4>Preview YoungMinds 1080 × 1350</h4>
         </div>
         <button className="button secondary" type="button" onClick={downloadAllPng}>
