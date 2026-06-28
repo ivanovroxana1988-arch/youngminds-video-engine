@@ -1,12 +1,15 @@
+import { YOUNGMINDS_BRAND, getYoungMindsActivityList } from "@/lib/brand/youngminds";
 import { ContentPlan } from "@/types/content";
 
-const SYSTEM_PROMPT = `You are a senior social media strategist.
-Convert one long script into Instagram-ready content.
+const SYSTEM_PROMPT = `You are the content strategist for YoungMinds, an afterschool and play space for children.
+Convert one script or idea into Instagram-ready content for parents.
 Rules:
-- Preserve the author's voice and concrete ideas.
-- Do not invent facts, testimonials, numbers, credentials, partnerships, or case studies.
-- Avoid generic motivational filler.
-- Write in clear Romanian unless another language is requested.
+- Preserve the author's concrete ideas.
+- Make the content warm, playful, trustworthy, and easy for parents to understand.
+- Do not invent facts, prices, discounts, schedules, staff credentials, testimonials, partnerships, safety certifications, medical claims, or guaranteed results.
+- Avoid generic motivational filler and corporate language.
+- Use Romanian with diacritics.
+- Every post should clearly connect to YoungMinds: afterschool, play, STEM, piano, tae-kwon do, robotics, foreign languages, yoga, or child development through play.
 - Return strict JSON only.
 - Every post must include: format, title, hook, caption, visualBrief, cta, hashtags.
 - For carousel posts, create 5-8 carouselSlides.
@@ -51,13 +54,25 @@ export async function generateContentPlan(input: GenerateContentPlanInput): Prom
   const count = input.count ?? 7;
   const language = input.language ?? "Romanian";
 
-  const userPrompt = `Create a content plan from this script.
+  const userPrompt = `Create a YoungMinds Instagram content plan from this script or idea.
 
 Language: ${language}
-Brand/context: ${input.brand ?? "personal brand / small business"}
-Audience: ${input.audience ?? "Instagram audience"}
-Goal: ${input.goal ?? "educate, build trust, and convert attention into action"}
+Brand: ${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}
+Website: ${YOUNGMINDS_BRAND.website}
+Brand promise: ${YOUNGMINDS_BRAND.promise}
+Brand tone: ${YOUNGMINDS_BRAND.tone}
+Activities: ${getYoungMindsActivityList()}
+Content pillars: ${YOUNGMINDS_BRAND.contentPillars.join("; ")}
+Audience: ${input.audience ?? YOUNGMINDS_BRAND.audience}
+Goal: ${input.goal ?? YOUNGMINDS_BRAND.defaultGoal}
 Number of posts: ${count}
+
+Content strategy:
+- Mix practical parent education with warm promotion.
+- Include at least one carousel, one simple post, and one reel script when possible.
+- Use CTAs like: programeaza o vizita, scrie-ne pentru detalii, vezi activitatile YoungMinds, vino sa ne cunosti.
+- Keep claims realistic. Say what the activity can support or encourage, not what it guarantees.
+- Make visualBrief match the YoungMinds universe: blue/purple space background, yellow accents, stars, playful icons, rounded shapes.
 
 Required JSON shape:
 {
@@ -73,12 +88,12 @@ Required JSON shape:
       "carouselSlides": [{"title":"...","body":"..."}],
       "reelScript": {"durationSeconds": 30, "scenes": [{"visual":"...","voiceover":"...","onScreenText":"..."}]},
       "cta": "...",
-      "hashtags": ["#tag"]
+      "hashtags": ["#YoungMinds", "#Afterschool", "#Copii"]
     }
   ]
 }
 
-Script:
+Script or idea:
 ${input.script}`;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
