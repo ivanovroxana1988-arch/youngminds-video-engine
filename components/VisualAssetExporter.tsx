@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useMemo, useState } from "react";
 import { buildVisualAssets, VisualAsset } from "@/lib/creative/svg-assets";
 import { GeneratedPost } from "@/types/content";
