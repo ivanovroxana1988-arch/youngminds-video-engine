@@ -89,6 +89,13 @@ Visual direction:
 - no readable text inside the image`;
 }
 
+function extractImageUrl(data: any) {
+  const first = data?.data?.[0];
+  if (first?.url) return first.url as string;
+  if (first?.b64_json) return `data:image/png;base64,${first.b64_json}`;
+  return undefined;
+}
+
 export async function generatePostImage(
   visualBrief: string,
   context: BrandImageContext = {}
@@ -110,8 +117,7 @@ export async function generatePostImage(
       prompt,
       n: 1,
       size: "1024x1024",
-      quality: "standard",
-      response_format: "url"
+      quality: "standard"
     })
   });
 
@@ -121,10 +127,10 @@ export async function generatePostImage(
   }
 
   const data = await response.json();
-  const imageUrl = data.data?.[0]?.url;
+  const imageUrl = extractImageUrl(data);
 
   if (!imageUrl) {
-    throw new Error("DALL-E 3 returned no image URL");
+    throw new Error("OpenAI Images API returned no usable image URL or base64 image.");
   }
 
   return imageUrl;
