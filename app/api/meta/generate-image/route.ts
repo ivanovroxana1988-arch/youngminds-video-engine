@@ -6,7 +6,17 @@ import { uploadImageToStorage } from "@/lib/ai/upload-image";
 const schema = z.object({
   visualBrief: z.string().min(10),
   brand: z.string().optional(),
-  postIndex: z.number().int().nonnegative().optional()
+  postIndex: z.number().int().nonnegative().optional(),
+  post: z
+    .object({
+      title: z.string().optional(),
+      hook: z.string().optional(),
+      imageType: z.string().optional(),
+      photoTheme: z.string().optional(),
+      photoRequired: z.boolean().optional(),
+      templateType: z.string().optional()
+    })
+    .optional()
 });
 
 export async function POST(req: NextRequest) {
@@ -14,8 +24,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const input = schema.parse(body);
 
-    const dalleUrl = await generatePostImage(input.visualBrief, { brand: input.brand });
-    const permanentUrl = await uploadImageToStorage(dalleUrl, `post-${input.postIndex ?? 0}`);
+    const dalleUrl = await generatePostImage(input.visualBrief, {
+      brand: input.brand,
+      title: input.post?.title,
+      hook: input.post?.hook,
+      imageType: input.post?.imageType,
+      photoTheme: input.post?.photoTheme,
+      photoRequired: input.post?.photoRequired,
+      templateType: input.post?.templateType
+    });
+    const permanentUrl = await uploadImageToStorage(dalleUrl, `post-${input.postIndex ?? 0}-${Date.now()}`);
 
     return NextResponse.json({ imageUrl: permanentUrl });
   } catch (err) {
