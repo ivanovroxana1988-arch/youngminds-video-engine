@@ -1,14 +1,14 @@
 import { CarouselSlide, ContentPlan, GeneratedPost, StylePreset, TemplateType } from "@/types/content";
 
-const MAX_TITLE_CHARS = 56;
-const MAX_HOOK_CHARS = 64;
-const MAX_CAPTION_CHARS = 420;
-const MAX_VISUAL_BRIEF_CHARS = 220;
-const MAX_CTA_CHARS = 72;
-const MAX_DESIGN_NOTES_CHARS = 120;
-const MAX_PHOTO_THEME_CHARS = 36;
-const MAX_BODY_PREVIEW_CHARS = 170;
-const MAX_CHIP_CHARS = 16;
+const MAX_TITLE_CHARS = 48;
+const MAX_HOOK_CHARS = 56;
+const MAX_CAPTION_CHARS = 380;
+const MAX_VISUAL_BRIEF_CHARS = 180;
+const MAX_CTA_CHARS = 68;
+const MAX_DESIGN_NOTES_CHARS = 96;
+const MAX_PHOTO_THEME_CHARS = 30;
+const MAX_BODY_PREVIEW_CHARS = 138;
+const MAX_CHIP_CHARS = 14;
 const PROMO_KEYWORDS = ["înscrieri", "locuri", "ultimele", "vară", "promo", "ofert", "vacanță", "acum"];
 const ARTIFACT_PATTERNS = [
   /post context\s*:/gi,
@@ -21,7 +21,13 @@ const ARTIFACT_PATTERNS = [
   /image type requested\s*:/gi,
   /important theme to visualize\s*:/gi,
   /hook\s*:/gi,
-  /post title\s*:/gi
+  /post title\s*:/gi,
+  /commentariu(?:l)? aplicației\s*:/gi,
+  /instrucțiuni interne\s*:/gi,
+  /background only\s*:/gi,
+  /text overlay\s*:/gi,
+  /do not include[^.]*\.?/gi,
+  /leave clear space[^.]*\.?/gi
 ];
 
 function normalizeWhitespace(value: string) {
@@ -37,7 +43,7 @@ function stripOuterQuotes(value: string) {
 }
 
 function cleanText(value: string) {
-  return stripOuterQuotes(normalizeWhitespace(stripPromptArtifacts(value)));
+  return stripOuterQuotes(normalizeWhitespace(stripPromptArtifacts(value || "")));
 }
 
 function clipChars(value: string, max: number) {
@@ -69,12 +75,18 @@ function ensureSentenceEnd(value: string) {
 }
 
 function normalizeParagraphs(value: string) {
-  const parts = normalizeWhitespace(value)
+  const normalized = normalizeWhitespace(value);
+  if (!normalized) return "";
+
+  const rawParts = normalized
     .split(/\n{2,}/)
-    .map((part) => ensureSentenceEnd(part))
+    .map((part) => cleanText(part))
     .filter(Boolean);
 
-  if (!parts.length) return "";
+  const parts = (rawParts.length ? rawParts : [normalized])
+    .map((part) => clipChars(ensureSentenceEnd(part), 140))
+    .filter(Boolean);
+
   return parts.slice(0, 4).join("\n\n");
 }
 
@@ -86,8 +98,8 @@ function normalizeHashtag(value: string) {
 
 function normalizeSlide(slide: CarouselSlide): CarouselSlide {
   return {
-    title: clipWords(sentenceCase(slide.title), 7),
-    body: clipWords(ensureSentenceEnd(slide.body), 22)
+    title: clipWords(sentenceCase(slide.title), 6),
+    body: clipWords(ensureSentenceEnd(slide.body), 20)
   };
 }
 
@@ -100,9 +112,9 @@ function chooseTemplate(post: GeneratedPost): TemplateType {
   if (post.carouselSlides?.length) return "carousel_education";
 
   const density = post.title.length + post.hook.length + post.caption.length;
-  if (density > 280) return "text_card";
-  if (density > 170) return "photo_split";
-  if (detectPromo(post)) return "photo_hero";
+  if (detectPromo(post) && density <= 240) return "photo_hero";
+  if (density > 250 || post.title.length > 34) return "photo_split";
+  if (!post.photoRequired && density > 180) return "text_card";
   return post.photoRequired ? "photo_hero" : "photo_split";
 }
 
@@ -110,16 +122,18 @@ function chooseStyle(templateType: TemplateType, post: GeneratedPost): StylePres
   if (templateType === "carousel_education") return "bottom_band";
   if (templateType === "photo_split") return "split_showcase";
   if (templateType === "text_card") return detectPromo(post) ? "mosaic_promo" : "bottom_band";
-  return detectPromo(post) ? "overlay_photo" : "overlay_photo";
+  return detectPromo(post) ? "overlay_photo" : "bottom_band";
 }
 
 function shortenForVisual(value: string, maxChars: number, maxWordsCount: number) {
   return clipChars(clipWords(sentenceCase(value), maxWordsCount), maxChars);
 }
 
-function visualBodyFromCaption(caption: string) {
-  const singleLine = normalizeWhitespace(caption.replace(/\n+/g, " "));
-  return clipChars(singleLine, MAX_BODY_PREVIEW_CHARS);
+function visualBodyFromCaption(caption: string, cta?: string) {
+  const paragraphs = normalizeParagraphs(caption).split(/\n\n/).filter(Boolean);
+  const lead = paragraphs.slice(0, 2).join(" ");
+  const compact = normalizeWhitespace([lead, cta ? cleanText(cta) : ""].filter(Boolean).join(" "));
+  return clipChars(compact, MAX_BODY_PREVIEW_CHARS);
 }
 
 function normalizeDesignNotes(value: string) {
@@ -140,9 +154,7 @@ function normalizeCta(value: string) {
 }
 
 function normalizeCaption(value: string) {
-  const normalized = normalizeParagraphs(value);
-  const clipped = clipChars(normalized, MAX_CAPTION_CHARS);
-  return normalizeParagraphs(clipped);
+  return normalizeParagraphs(clipChars(normalizeParagraphs(value), MAX_CAPTION_CHARS));
 }
 
 export function preparePostForRendering(post: GeneratedPost): GeneratedPost {
@@ -155,7 +167,7 @@ export function preparePostForRendering(post: GeneratedPost): GeneratedPost {
     .map(normalizeHashtag)
     .filter(Boolean)
     .filter((tag, index, list) => list.indexOf(tag) === index)
-    .slice(0, 8);
+    .slice(0, 6);
 
   return {
     ...post,
@@ -164,9 +176,9 @@ export function preparePostForRendering(post: GeneratedPost): GeneratedPost {
     imageType: post.imageType || "ai_image",
     photoTheme,
     photoRequired: post.photoRequired ?? templateType !== "text_card",
-    designNotes: normalizeDesignNotes(post.designNotes || "Păstrează headline-ul scurt și spațiu clar pentru overlay."),
-    title: shortenForVisual(post.title, MAX_TITLE_CHARS, 10),
-    hook: shortenForVisual(post.hook || post.title, MAX_HOOK_CHARS, 10),
+    designNotes: normalizeDesignNotes(post.designNotes || "Headline scurt, corp scurt, contrast puternic și spațiu curat pentru overlay."),
+    title: shortenForVisual(post.title, MAX_TITLE_CHARS, 8),
+    hook: shortenForVisual(post.hook || post.title, MAX_HOOK_CHARS, 9),
     caption,
     visualBrief: normalizeVisualBrief(post.visualBrief || photoTheme, photoTheme),
     carouselSlides: post.carouselSlides?.map(normalizeSlide).slice(0, 8),
@@ -184,10 +196,7 @@ export function sanitizeContentPlan(plan: ContentPlan): ContentPlan {
 }
 
 export function getVisualBody(post: GeneratedPost) {
-  if (post.designNotes && post.templateType === "text_card") {
-    return clipChars(cleanText(post.designNotes), 210);
-  }
-  return visualBodyFromCaption(post.caption);
+  return visualBodyFromCaption(post.caption, post.cta);
 }
 
 export function getVisualChips(post: GeneratedPost) {
@@ -199,4 +208,19 @@ export function getVisualChips(post: GeneratedPost) {
     .map((item) => clipChars(cleanText(item), MAX_CHIP_CHARS))
     .filter(Boolean)
     .slice(0, 3);
+}
+
+export function getPostQualityWarnings(post: GeneratedPost) {
+  const warnings: string[] = [];
+  const combined = [post.title, post.hook, post.caption, post.visualBrief, post.designNotes].join(" \n ");
+
+  if (/post context|layout style|visual brief|design notes|template type|style preset/i.test(combined)) {
+    warnings.push("Conținutul a păstrat fragmente de prompt intern.");
+  }
+  if (post.title.length > 40) warnings.push("Titlul este prea lung pentru template-uri foto." );
+  if (post.hook.length > 52) warnings.push("Hook-ul este prea lung și poate crea overflow." );
+  if (post.caption.length > 340) warnings.push("Caption-ul este dens; pe vizual va fi folosită o versiune scurtă." );
+  if ((post.carouselSlides?.length ?? 0) > 6) warnings.push("Caruselul este lung; verifică ritmul vizual." );
+
+  return warnings;
 }
