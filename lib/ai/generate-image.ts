@@ -1,21 +1,28 @@
-const BRAND_IMAGE_SYSTEM_PROMPT = `You are a visual designer creating Instagram post images for YoungMinds educational brand.
+const BRAND_IMAGE_SYSTEM_PROMPT = `You are a visual designer creating Instagram marketing images for YoungMinds educational brand.
 
 Brand identity:
-- Color palette: cosmic blue and purple backgrounds, yellow accents, white details
+- Color palette: cosmic blue and purple accents, yellow highlights, white details
 - Style: playful, warm, child-friendly, educational, rounded shapes
 - Aesthetic: afterschool, play space, stars, curiosity, learning through play
 - Mood: safe, joyful, imaginative, trustworthy for parents
 
 For every image:
-- Use blue/purple space-inspired backgrounds
-- Add yellow accents, small stars, soft playful shapes
-- Avoid stock-photo clichés and overly busy compositions
-- 1:1 square or 4:5 portrait ratio composition
-- No watermarks, no fake logos, no unreadable text in the image`;
+- Create an original image, not a copy of any stock photo
+- Prefer clean, polished marketing compositions
+- No watermarks, no fake logos, no unreadable text in the image
+- Keep the composition usable for Instagram marketing and later text overlays
+- Show diverse, generic, non-identifiable children or learning environments when people are present
+- Avoid uncanny faces, visual clutter, chaotic classrooms, and fake-looking props`;
 
 export type BrandImageContext = {
   brand?: string;
   audience?: string;
+  title?: string;
+  hook?: string;
+  imageType?: string;
+  photoTheme?: string;
+  photoRequired?: boolean;
+  templateType?: string;
 };
 
 function parseOpenAIImageError(status: number, body: string) {
@@ -38,6 +45,41 @@ function parseOpenAIImageError(status: number, body: string) {
   }
 }
 
+function buildImagePrompt(visualBrief: string, context: BrandImageContext) {
+  const brand = context.brand ?? "YoungMinds";
+  const shouldLookPhotographic = context.photoRequired || context.imageType === "real_photo" || context.imageType === "mixed";
+
+  const modePrompt = shouldLookPhotographic
+    ? `Create a polished, photorealistic, generic marketing image. Show a believable educational or play scene that matches the brief. The image should feel like an original lifestyle photo for a premium afterschool brand. Use natural human poses, warm light, clean interiors, playful educational props, and subtle YoungMinds colors in the environment. Leave some calm visual space for text overlays.`
+    : `Create a polished branded visual illustration with a clean, modern editorial look. Use graphic shapes, playful details, and a warm educational atmosphere. Leave calm space for text overlays.`;
+
+  const themePrompt = context.photoTheme
+    ? `Important theme to visualize: ${context.photoTheme}.`
+    : "";
+
+  const contentPrompt = [context.title, context.hook, visualBrief].filter(Boolean).join(" | ");
+
+  return `${BRAND_IMAGE_SYSTEM_PROMPT}
+
+Brand: ${brand}
+Audience: ${context.audience ?? "parents of children"}
+Post context: ${contentPrompt}
+Template type: ${context.templateType ?? "not specified"}
+Image type requested: ${context.imageType ?? "mixed"}
+${themePrompt}
+
+${modePrompt}
+
+Visual brief for this post: ${visualBrief}
+
+Visual direction:
+- keep the image friendly, aspirational, and useful for marketing
+- if children are shown, depict them generically and safely, with no readable school badges or brand marks
+- if the theme is robotics, STEM, piano, yoga, languages, tae-kwon do, afterschool, or play space, reflect that clearly
+- subtle stars or cosmic accents are welcome, but do not turn the result into a heavy poster background unless the scene needs it
+- no readable text inside the image`;
+}
+
 export async function generatePostImage(
   visualBrief: string,
   context: BrandImageContext = {}
@@ -46,14 +88,7 @@ export async function generatePostImage(
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const brand = context.brand ?? "YoungMinds";
-
-  const prompt = `${BRAND_IMAGE_SYSTEM_PROMPT}
-
-Brand: ${brand}
-Visual brief for this post: ${visualBrief}
-
-Create a warm, playful Instagram image that visualizes this brief in the YoungMinds universe. Blue/purple cosmic background, yellow accents, stars, rounded friendly shapes. No readable text, no watermark.`;
+  const prompt = buildImagePrompt(visualBrief, context);
 
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
