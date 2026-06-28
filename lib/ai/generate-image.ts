@@ -23,6 +23,8 @@ export type BrandImageContext = {
   photoTheme?: string;
   photoRequired?: boolean;
   templateType?: string;
+  stylePreset?: string;
+  designNotes?: string;
 };
 
 function parseOpenAIImageError(status: number, body: string) {
@@ -50,8 +52,12 @@ function buildImagePrompt(visualBrief: string, context: BrandImageContext) {
   const shouldLookPhotographic = context.photoRequired || context.imageType === "real_photo" || context.imageType === "mixed";
 
   const modePrompt = shouldLookPhotographic
-    ? `Create a polished, photorealistic, generic marketing image. Show a believable educational or play scene that matches the brief. The image should feel like an original lifestyle photo for a premium afterschool brand. Use natural human poses, warm light, clean interiors, playful educational props, and subtle YoungMinds colors in the environment. Leave some calm visual space for text overlays.`
+    ? `Create a polished, photorealistic, generic marketing image. Show a believable educational or play scene that matches the brief. The image should feel like an original lifestyle photo for a premium afterschool brand. Use natural human poses, warm light, clean interiors or exteriors, playful educational props, and subtle YoungMinds colors in the environment. Leave some calm visual space for text overlays.`
     : `Create a polished branded visual illustration with a clean, modern editorial look. Use graphic shapes, playful details, and a warm educational atmosphere. Leave calm space for text overlays.`;
+
+  const stylePrompt = context.stylePreset
+    ? `Preferred campaign layout style reference: ${context.stylePreset}. Examples: overlay_photo = full photo with large headline overlay; split_showcase = left text panel, right photo; bottom_band = full photo with strong band at the bottom; mosaic_promo = 2x2 collage feel. The generated image itself should support that kind of layout.`
+    : "";
 
   const themePrompt = context.photoTheme
     ? `Important theme to visualize: ${context.photoTheme}.`
@@ -65,8 +71,11 @@ Brand: ${brand}
 Audience: ${context.audience ?? "parents of children"}
 Post context: ${contentPrompt}
 Template type: ${context.templateType ?? "not specified"}
+Style preset: ${context.stylePreset ?? "not specified"}
 Image type requested: ${context.imageType ?? "mixed"}
 ${themePrompt}
+${stylePrompt}
+Design notes: ${context.designNotes ?? "none"}
 
 ${modePrompt}
 
