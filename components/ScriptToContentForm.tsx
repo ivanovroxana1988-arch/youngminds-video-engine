@@ -268,7 +268,7 @@ export function ScriptToContentForm() {
                 </button>
               </div>
 
-              <VisualAssetExporter post={post} postIndex={index} brand={YOUNGMINDS_BRAND.name} />
+              <VisualAssetExporter post={post} postIndex={index} />
             </article>
           ))}
         </section>
