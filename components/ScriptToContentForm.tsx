@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { VisualAssetExporter } from "@/components/VisualAssetExporter";
 import { ContentPlan } from "@/types/content";
 
 export function ScriptToContentForm() {
@@ -79,7 +80,7 @@ export function ScriptToContentForm() {
         <p className="eyebrow">MVP</p>
         <h1>Script → Instagram Content Engine</h1>
         <p className="lead">
-          Pui scriptul. Primești postări, carusele, hooks, captions și programare prin Postiz. Pentru că aparent un text nu poate trăi liniștit fără să devină șapte formate de conținut.
+          Pui scriptul. Primești postări, carusele, hooks, captions, asset-uri vizuale și programare prin Postiz. Pentru că aparent un text nu poate trăi liniștit fără să devină șapte formate de conținut.
         </p>
 
         <div className="grid">
@@ -161,6 +162,8 @@ export function ScriptToContentForm() {
 
               <p><strong>CTA:</strong> {post.cta}</p>
               <p>{post.hashtags.join(" ")}</p>
+
+              <VisualAssetExporter post={post} postIndex={index} brand={brand} />
             </article>
           ))}
         </section>
