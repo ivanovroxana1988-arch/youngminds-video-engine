@@ -17,6 +17,7 @@ const postSchema = z.object({
 
 const schema = z.object({
   posts: z.array(postSchema).min(1).max(50),
+  imageUrls: z.array(z.string().optional()).optional(),
   brand: z.string().optional(),
   startDateIso: z.string(),
   daysBetweenPosts: z.number().int().min(1).max(14).default(1),
@@ -32,10 +33,15 @@ function buildCaption(post: z.infer<typeof postSchema>): string {
   return parts.join("\n\n");
 }
 
+function toPublicImageUrl(imageUrl: string | undefined, req: NextRequest) {
+  if (!imageUrl) return undefined;
+  return new URL(imageUrl, req.nextUrl.origin).toString();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { posts, brand, startDateIso, daysBetweenPosts, contentScriptId } = schema.parse(body);
+    const { posts, imageUrls, brand, startDateIso, daysBetweenPosts, contentScriptId } = schema.parse(body);
 
     const startDate = new Date(startDateIso);
     const now = Date.now();
@@ -49,7 +55,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const results: { title?: string; scheduledAt: string; creationId: string }[] = [];
+    const results: { title?: string; scheduledAt: string; creationId: string; imageUrl: string }[] = [];
     let supabase: ReturnType<typeof createServiceSupabaseClient> | null = null;
 
     try {
@@ -63,8 +69,12 @@ export async function POST(req: NextRequest) {
       const scheduledAt = new Date(startDate);
       scheduledAt.setDate(scheduledAt.getDate() + i * daysBetweenPosts);
 
-      const dalleUrl = await generatePostImage(post.visualBrief, { brand });
-      const imageUrl = await uploadImageToStorage(dalleUrl, `schedule-${Date.now()}-${i}`);
+      let imageUrl = toPublicImageUrl(imageUrls?.[i], req);
+      if (!imageUrl) {
+        const dalleUrl = await generatePostImage(post.visualBrief, { brand });
+        imageUrl = await uploadImageToStorage(dalleUrl, `schedule-${Date.now()}-${i}`);
+      }
+
       const caption = buildCaption(post);
       const creationId = await createScheduledMediaContainer(imageUrl, caption, scheduledAt);
 
@@ -90,7 +100,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      results.push({ title: post.title, scheduledAt: scheduledAt.toISOString(), creationId });
+      results.push({ title: post.title, scheduledAt: scheduledAt.toISOString(), creationId, imageUrl });
     }
 
     return NextResponse.json({ success: true, scheduled: results.length, results });
