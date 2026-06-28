@@ -1,13 +1,28 @@
-# YoungMinds Video Engine - MVP spec
+# YoungMinds Content Studio - MVP spec
 
 ## Promise
 
-Userul adaugă un script lung. Aplicația generează o săptămână de conținut Instagram, creează asset-uri vizuale 1080 × 1350 pentru postări/carusele și trimite postările către Postiz pentru programare.
+Userul adaugă o idee, o campanie sau un script despre YoungMinds. Aplicația generează o săptămână de conținut Instagram, creează asset-uri vizuale 1080 × 1350 în identitatea YoungMinds și trimite postările către Postiz pentru programare.
+
+## Brand scope
+
+YoungMinds este tratat ca brand fix, nu ca input generic.
+
+Activități folosite în generator:
+
+- STEM;
+- Pian;
+- Tae-kwon do;
+- Robotică;
+- Limbi străine;
+- Yoga.
+
+Public principal: părinți care caută afterschool, activități educaționale și un spațiu sigur și cald pentru copii.
 
 ## Flux
 
-1. Userul introduce scriptul, brandul și audiența.
-2. API-ul `/api/content/generate` trimite scriptul către modelul AI.
+1. Userul introduce ideea/scriptul și ajustează audiența, dacă e nevoie.
+2. API-ul `/api/content/generate` trimite inputul către modelul AI împreună cu profilul YoungMinds.
 3. Modelul returnează un JSON cu piloni de conținut și postări.
 4. Aplicația afișează planul pentru aprobare/editare.
 5. Rendererul local creează preview-uri SVG și export PNG pentru fiecare postare.
@@ -39,6 +54,8 @@ Next.js app router
 
 OpenAI Responses API pentru generarea planului
 
+Profil de brand în `lib/brand/youngminds.ts`
+
 Renderer SVG propriu pentru asset-uri vizuale exportabile PNG
 
 Supabase pentru persistență opțională
@@ -51,4 +68,4 @@ Adaugă un pas între generare și programare:
 
 `content plan -> template renderer -> media files -> Postiz upload -> scheduled post`
 
-Pentru template renderer poți folosi Canva API, Placid, Bannerbear, Creatomate sau poți extinde rendererul SVG propriu. Da, încă o alegere tehnică, pentru că aparent nu era suficientă birocrația cosmică.
+Pentru template renderer poți extinde rendererul SVG propriu sau poți conecta Canva API, Placid, Bannerbear ori Creatomate. Da, încă o alegere tehnică, pentru că aparent nu era suficientă birocrația cosmică.
