@@ -24,6 +24,13 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function resolvePhotoUrl(photoUrl?: string) {
+  if (!photoUrl) return undefined;
+  if (photoUrl.startsWith("http")) return photoUrl;
+  if (typeof window === "undefined") return photoUrl;
+  return new URL(photoUrl, window.location.origin).toString();
+}
+
 async function svgToPngBlob(asset: VisualAsset) {
   const svgBlob = new Blob([asset.svg], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(svgBlob);
@@ -58,9 +65,10 @@ async function svgToPngBlob(asset: VisualAsset) {
 
 export function VisualAssetExporter({ post, postIndex, photoUrl, templateType }: VisualAssetExporterProps) {
   const [status, setStatus] = useState<string | null>(null);
+  const resolvedPhotoUrl = useMemo(() => resolvePhotoUrl(photoUrl), [photoUrl]);
   const assets = useMemo(
-    () => buildVisualAssets(post, postIndex, { photoUrl, templateType }),
-    [post, postIndex, photoUrl, templateType]
+    () => buildVisualAssets(post, postIndex, { photoUrl: resolvedPhotoUrl, templateType }),
+    [post, postIndex, resolvedPhotoUrl, templateType]
   );
 
   async function downloadPng(asset: VisualAsset) {
