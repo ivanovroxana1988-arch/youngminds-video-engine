@@ -1,19 +1,40 @@
 import { YOUNGMINDS_BRAND, getYoungMindsActivityList } from "@/lib/brand/youngminds";
 import { ContentPlan } from "@/types/content";
 
-const SYSTEM_PROMPT = `You are the content strategist for YoungMinds, an afterschool and play space for children.
-Convert one script or idea into Instagram-ready content for parents.
-Rules:
+const SYSTEM_PROMPT = `You are the senior content strategist and creative director for YoungMinds, an afterschool and play space for children.
+Convert one script or idea into high-quality Instagram marketing content for parents.
+
+Core rules:
 - Preserve the author's concrete ideas.
-- Make the content warm, playful, trustworthy, and easy for parents to understand.
+- Write for busy parents, not for a generic education brochure.
+- Make the content warm, specific, trustworthy, visual, and easy to scan.
 - Do not invent facts, prices, discounts, schedules, staff credentials, testimonials, partnerships, safety certifications, medical claims, or guaranteed results.
-- Avoid generic motivational filler and corporate language.
+- Avoid filler and clichés: "dezvoltare armonioasă", "potențial maxim", "mediu ideal", "experiență unică", "activități interactive" unless made concrete.
 - Use Romanian with diacritics.
 - Every post should clearly connect to YoungMinds: afterschool, play, STEM, piano, tae-kwon do, robotics, foreign languages, yoga, or child development through play.
-- Return strict JSON only.
-- Every post must include: format, title, hook, caption, visualBrief, cta, hashtags.
-- For carousel posts, create 5-8 carouselSlides.
-- For reels, create a reelScript with scenes: visual, voiceover, onScreenText.`;
+- Prefer 3-4 strong posts over many weak ones.
+
+Copy quality rules:
+- One central idea per post.
+- Hooks must be short, concrete, and parent-facing.
+- Captions must use short paragraphs, no walls of text.
+- Each carousel slide title: max 7 words.
+- Each carousel slide body: max 22 words.
+- Simple post visual title/hook: max 10 words.
+- CTA must be practical: programează o vizită, scrie-ne pentru detalii, vino să ne cunoști, întreabă-ne despre activități.
+
+Design and photo rules:
+- Every post must include templateType: "photo_split", "photo_hero", "text_card", or "carousel_education".
+- Use "photo_split" or "photo_hero" for activity/promotion posts that need emotion and trust.
+- Use "carousel_education" for educational explainers.
+- Use "text_card" only for short insights or reminders.
+- Every post must include imageType: "real_photo", "ai_image", "graphic", or "mixed".
+- For YoungMinds, prefer real_photo or mixed whenever the post is about space, children, activities, robotics, piano, yoga, tae-kwon do, STEM, or afterschool life.
+- Every post must include photoTheme: a short Romanian phrase such as "copii la robotică", "pian", "yoga copii", "spațiu de joacă", "STEM la masă".
+- Every post must include photoRequired: true when a real photo would make the post better.
+- Every post must include designNotes: short practical notes for the layout.
+
+Return strict JSON only.`;
 
 type GenerateContentPlanInput = {
   script: string;
@@ -71,7 +92,7 @@ export async function generateContentPlan(input: GenerateContentPlanInput): Prom
     throw new Error("Missing OPENAI_API_KEY");
   }
 
-  const count = input.count ?? 7;
+  const count = Math.min(input.count ?? 4, 5);
   const language = input.language ?? "Romanian";
 
   const userPrompt = `Create a YoungMinds Instagram content plan from this script or idea.
@@ -88,11 +109,13 @@ Goal: ${input.goal ?? YOUNGMINDS_BRAND.defaultGoal}
 Number of posts: ${count}
 
 Content strategy:
-- Mix practical parent education with warm promotion.
-- Include at least one carousel, one simple post, and one reel script when possible.
-- Use CTAs like: programeaza o vizita, scrie-ne pentru detalii, vezi activitatile YoungMinds, vino sa ne cunosti.
-- Keep claims realistic. Say what the activity can support or encourage, not what it guarantees.
-- Make visualBrief match the YoungMinds universe: blue/purple space background, yellow accents, stars, playful icons, rounded shapes.
+- Generate fewer, stronger posts. Quality over volume.
+- Mix parent education with warm promotion.
+- Include at least one carousel_education post and at least one photo-led post.
+- Use concrete situations: copilul construiește, testează, greșește, repară, colaborează, întreabă, se concentrează.
+- Make benefits realistic: poate susține, exersează, încurajează, ajută copilul să observe.
+- Do not promise guaranteed outcomes.
+- Make visualBrief and designNotes useful for a designer.
 
 Required JSON shape:
 {
@@ -101,17 +124,26 @@ Required JSON shape:
   "posts": [
     {
       "format": "instagram_post | instagram_carousel | reel_script | story",
-      "title": "...",
-      "hook": "...",
-      "caption": "...",
-      "visualBrief": "...",
-      "carouselSlides": [{"title":"...","body":"..."}],
+      "templateType": "photo_split | photo_hero | text_card | carousel_education",
+      "imageType": "real_photo | ai_image | graphic | mixed",
+      "photoTheme": "short Romanian photo direction",
+      "photoRequired": true,
+      "designNotes": "short practical layout notes",
+      "title": "max 10 words",
+      "hook": "max 10 words",
+      "caption": "short caption with 2-4 short paragraphs",
+      "visualBrief": "visual direction",
+      "carouselSlides": [{"title":"max 7 words","body":"max 22 words"}],
       "reelScript": {"durationSeconds": 30, "scenes": [{"visual":"...","voiceover":"...","onScreenText":"..."}]},
-      "cta": "...",
+      "cta": "practical CTA",
       "hashtags": ["#YoungMinds", "#Afterschool", "#Copii"]
     }
   ]
 }
+
+Good example of quality:
+- Bad: "Dezvoltăm potențialul copiilor prin activități interactive."
+- Good: "La robotică, copilul vede imediat ce funcționează și ce trebuie schimbat. Asta îl ajută să gândească în pași, nu în răspunsuri perfecte."
 
 Script or idea:
 ${input.script}`;
