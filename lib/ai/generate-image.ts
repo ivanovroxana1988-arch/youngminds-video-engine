@@ -42,12 +42,14 @@ function cleanFragment(value?: string) {
     .replace(/template type\s*:/gi, "")
     .replace(/style preset\s*:/gi, "")
     .replace(/theme\s*:/gi, "")
+    .replace(/do not include[^.]*\.?/gi, "")
+    .replace(/leave clear[^.]*\.?/gi, "")
     .trim();
 }
 
 function buildImagePrompt(visualBrief: string, context: BrandImageContext) {
   const brand = context.brand ?? "YoungMinds";
-  const subject = [cleanFragment(context.photoTheme), cleanFragment(context.title), cleanFragment(context.hook)]
+  const subject = [cleanFragment(context.photoTheme), cleanFragment(context.title)]
     .filter(Boolean)
     .slice(0, 2)
     .join(", ");
@@ -56,15 +58,16 @@ function buildImagePrompt(visualBrief: string, context: BrandImageContext) {
   const style = cleanFragment(context.stylePreset);
 
   return [
-    `Create one polished Instagram background image for ${brand}.`,
-    "This is a background asset only, not a finished poster.",
-    "Show a warm afterschool, playground, workshop or educational environment.",
-    "Use blue and purple tones, yellow accents, rounded shapes and subtle star details.",
-    "Show relevant objects, spaces and activity materials such as robotics kits, books, art supplies, music elements, mats, tables or outdoor play elements.",
-    "Leave clear empty space for later text overlay.",
-    "Absolutely no readable text, no letters, no numbers, no captions, no labels, no interface notes, no watermarks and no logos.",
-    subject ? `Main subject: ${subject}.` : "",
-    style ? `Preferred composition mood: ${style}.` : "",
+    `Create one rich, polished Instagram background image for ${brand}.`,
+    "Visual feel: warm lifestyle editorial, premium afterschool brand, playful learning, soft natural light, gentle depth of field, welcoming atmosphere.",
+    "Composition: cinematic 1:1 marketing background, clean but not sterile, with visual depth and a clear focal area.",
+    "Brand palette: deep blue, soft purple, warm yellow accents, white highlights, rounded shapes, subtle stars, joyful details.",
+    "Scene elements: learning corners, activity tables, robotics kits, art supplies, books, music details, yoga mats, playful outdoor corners, craft materials, toys, colorful educational objects.",
+    "The scene may suggest activity and movement through objects, hands, shadows or soft silhouettes, but avoid close-up faces or portrait-style subjects.",
+    "Keep part of the image calm and uncluttered so the app can place the headline later.",
+    "Critical rule: background asset only. No readable text, no letters, no numbers, no captions, no labels, no interface notes, no watermarks, no logos.",
+    subject ? `Main visual theme: ${subject}.` : "",
+    style ? `Layout support: ${style}.` : "",
     scene ? `Scene direction: ${scene}.` : ""
   ]
     .filter(Boolean)
