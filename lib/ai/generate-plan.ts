@@ -46,6 +46,26 @@ function validatePlanShape(value: unknown): ContentPlan {
   return plan;
 }
 
+function parseOpenAIError(status: number, body: string) {
+  try {
+    const data = JSON.parse(body);
+    const code = data?.error?.code;
+    const message = data?.error?.message;
+
+    if (status === 429 && code === "insufficient_quota") {
+      return "OpenAI API nu are credit sau billing activ pentru cheia setată în Vercel. Verifică Billing, Usage Limits și proiectul din care este generată cheia API. ChatGPT Plus nu acoperă automat costurile API.";
+    }
+
+    if (status === 429) {
+      return `OpenAI API a returnat 429. ${message ?? "Ai atins o limită de rată sau de buget."}`;
+    }
+
+    return `OpenAI request failed: ${status} ${message ?? body}`;
+  } catch {
+    return `OpenAI request failed: ${status} ${body}`;
+  }
+}
+
 export async function generateContentPlan(input: GenerateContentPlanInput): Promise<ContentPlan> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Missing OPENAI_API_KEY");
@@ -112,7 +132,7 @@ ${input.script}`;
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`OpenAI request failed: ${response.status} ${errorBody}`);
+    throw new Error(parseOpenAIError(response.status, errorBody));
   }
 
   const data = await response.json();
