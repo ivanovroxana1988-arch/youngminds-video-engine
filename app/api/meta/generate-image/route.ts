@@ -14,7 +14,9 @@ const schema = z.object({
       imageType: z.string().optional(),
       photoTheme: z.string().optional(),
       photoRequired: z.boolean().optional(),
-      templateType: z.string().optional()
+      templateType: z.string().optional(),
+      stylePreset: z.string().optional(),
+      designNotes: z.string().optional()
     })
     .optional()
 });
@@ -31,7 +33,9 @@ export async function POST(req: NextRequest) {
       imageType: input.post?.imageType,
       photoTheme: input.post?.photoTheme,
       photoRequired: input.post?.photoRequired,
-      templateType: input.post?.templateType
+      templateType: input.post?.templateType,
+      stylePreset: input.post?.stylePreset,
+      designNotes: input.post?.designNotes
     });
     const permanentUrl = await uploadImageToStorage(dalleUrl, `post-${input.postIndex ?? 0}-${Date.now()}`);
 
