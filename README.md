@@ -1,14 +1,30 @@
-# YoungMinds Video Engine
+# YoungMinds Content Studio
 
-MVP pentru un produs care transformă un script lung într-o săptămână de conținut Instagram și trimite postările către Postiz pentru programare.
+Generator dedicat pentru YoungMinds: transformă o idee, un script sau o campanie într-o săptămână de conținut Instagram pentru afterschool și locul de joacă.
 
-Pe românește: tu dai scriptul, aplicația scoate postări, carusele, captions, hook-uri, CTA-uri și brief-uri vizuale. Postiz se ocupă de programare/publicare. Civilizația mai câștigă cinci minute, ceea ce e aproape emoționant.
+Pe românește: scrii tema, aplicația scoate postări, carusele, captions, hook-uri, CTA-uri, Reel scripts și vizualuri în stilul YoungMinds. Internetul nu devine mai puțin absurd, dar măcar postările ies coerent.
+
+## Brand focus
+
+YoungMinds = afterschool și loc de joacă.
+
+Activități incluse în generator:
+
+- STEM: juguetronica, learning resources, tablă interactivă multitouch;
+- Pian;
+- Tae-kwon do;
+- Robotică: Lego Wedo, Boost, Mindstorms;
+- Limbi străine;
+- Yoga.
+
+Identitate vizuală folosită în asset-uri: albastru/mov cosmic, accente galbene, stele, forme rotunjite, energie caldă și jucăușă.
 
 ## Stack
 
 - Next.js App Router
 - TypeScript
 - OpenAI Responses API
+- Renderer SVG propriu pentru asset-uri 1080 × 1350 exportabile PNG/SVG
 - Supabase, opțional pentru salvarea planurilor
 - Postiz Public API pentru scheduling
 
@@ -62,17 +78,18 @@ curl -H "Authorization: $POSTIZ_API_KEY" "$POSTIZ_API_BASE_URL/integrations"
 
 ## Ce face acum
 
-- primește script lung;
+- primește o idee sau un script YoungMinds;
 - generează plan de conținut în română;
-- afișează postările generate;
-- trimite postările spre Postiz pentru programare;
-- pregătește structura pentru carusele și Reel-uri.
+- creează postări, carusele, Reel scripts și stories;
+- creează preview-uri vizuale YoungMinds 1080 × 1350;
+- exportă asset-uri PNG/SVG;
+- trimite postările spre Postiz pentru programare.
 
 ## Ce vine după
 
+- upload automat al PNG-urilor în Postiz;
 - editor pentru modificarea fiecărei postări înainte de programare;
-- generare imagini carusel din template-uri;
-- upload media către Postiz;
+- template-uri vizuale multiple;
 - autentificare și proiecte per user;
 - analytics din Postiz înapoi în aplicație;
 - calendar editorial propriu.
