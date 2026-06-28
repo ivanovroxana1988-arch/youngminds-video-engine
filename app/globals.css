@@ -149,6 +149,27 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; colo
   background: #f8fbff;
 }
 .photo-library-note { color: var(--muted); line-height: 1.55; }
+.toggle-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fffdf3;
+  cursor: pointer;
+}
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.toggle-row span {
+  font-weight: 800;
+  color: var(--accent-dark);
+}
 .photo-hint { color: var(--muted); line-height: 1.55; margin: 12px 0 0; }
 .selected-photo-preview {
   width: 100%;
