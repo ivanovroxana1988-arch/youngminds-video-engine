@@ -1,4 +1,6 @@
 import { YOUNGMINDS_BRAND, getYoungMindsActivityList } from "@/lib/brand/youngminds";
+import { proofreadContentPlan } from "@/lib/ai/proofread-plan";
+import { sanitizeContentPlan } from "@/lib/content/post-quality";
 import { ContentPlan } from "@/types/content";
 
 const SYSTEM_PROMPT = `You are the senior content strategist and creative director for YoungMinds, an afterschool and play space for children.
@@ -182,13 +184,15 @@ ${input.script}`;
   const text =
     data.output_text ??
     data.output
-      ?.flatMap((item: any) => item.content ?? [])
-      .map((content: any) => content.text ?? "")
+      ?.flatMap((item: { content?: Array<{ text?: string }> }) => item.content ?? [])
+      .map((content: { text?: string }) => content.text ?? "")
       .join("\n");
 
   if (!text) {
     throw new Error("OpenAI response had no text output.");
   }
 
-  return validatePlanShape(extractJson(text));
+  const rawPlan = validatePlanShape(extractJson(text));
+  const sanitizedPlan = sanitizeContentPlan(rawPlan);
+  return await proofreadContentPlan(sanitizedPlan);
 }
