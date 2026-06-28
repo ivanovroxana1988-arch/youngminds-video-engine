@@ -84,7 +84,7 @@ function renderCenteredLines(lines: string[], x: number, centerY: number, lineHe
     .join("")}</text>`;
 }
 
-function miniLogo(x: number, y: number, scale = 1, fill = C.white) {
+function miniLogo(x: number, y: number, scale = 1, fill: string = C.white) {
   return `<g transform="translate(${x} ${y}) scale(${scale})">
     <path d="M92 30 C116 30 131 47 128 71 C152 74 166 91 166 116 C166 144 143 166 115 166 C98 166 83 158 74 146 C64 159 49 166 31 166 C10 166 -6 150 -6 128 C-6 112 2 99 15 92 C5 80 4 62 15 49 C30 31 55 34 69 52 C75 39 83 30 92 30Z" fill="${C.yellow}" stroke="${C.orange}" stroke-width="10" stroke-linejoin="round"/>
     <path d="M67 45 L113 154" stroke="${fill}" stroke-width="10" stroke-linecap="round"/>
@@ -114,7 +114,6 @@ function defs() {
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#091137" flood-opacity="0.22"/>
     </filter>
-    <clipPath id="rounded-lg"><rect x="0" y="0" width="1080" height="1350" rx="0"/></clipPath>
     <style>
       .titleLight { font-family: Arial, sans-serif; font-weight: 900; fill: ${C.white}; }
       .titleDark { font-family: Arial, sans-serif; font-weight: 900; fill: ${C.midnight}; }
@@ -130,13 +129,13 @@ function defs() {
   </defs>`;
 }
 
-function photoOrPlaceholder(x: number, y: number, width: number, height: number, photoUrl?: string, theme?: string, rx = 0) {
+function photoOrPlaceholder(x: number, y: number, width: number, height: number, photoUrl?: string, theme?: string) {
   if (photoUrl) {
-    return `<image href="${escapeXml(photoUrl)}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"${rx ? ` clip-path="inset(0 round ${rx}px)"` : ""}/>`;
+    return `<image href="${escapeXml(photoUrl)}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>`;
   }
   const lines = wrapText(theme ? `Imagine: ${theme}` : "Imagine YoungMinds", 18, 3);
   return `<g>
-    <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${rx}" fill="#D8E2FF"/>
+    <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#D8E2FF"/>
     <circle cx="${x + width / 2}" cy="${y + height / 2 - 40}" r="82" fill="${C.yellow}" opacity="0.92"/>
     <text x="${x + width / 2}" y="${y + height / 2 - 15}" text-anchor="middle" style="font-size: 74px;">📷</text>
     ${renderCenteredLines(lines, x + width / 2, y + height / 2 + 90, 34, "bodyDark")}
@@ -223,6 +222,7 @@ function bottomBandLayout(args: { title: string; body: string; photoUrl?: string
   const leadLines = wrapText(title.lead, 20, 3);
   const accentLine = escapeXml(title.accent || "");
   const bodyLines = wrapText(args.body, 40, 2);
+  const accentY = 1070 + (leadLines.length - 1) * leadSize * 0.92;
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
     ${defs()}
@@ -233,7 +233,7 @@ function bottomBandLayout(args: { title: string; body: string; photoUrl?: string
     ${pill(730, 54, 292, 72, C.yellow, DEFAULT_DATE, "pillTextDark")}
     <rect x="0" y="846" width="1080" height="504" fill="${C.yellow}"/>
     ${renderLines(leadLines, 62, 958, leadSize * 0.92, "titleDark")}
-    <text x="62" y="${1070 + (leadLines.length - 1) * leadSize * 0.92}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${accentSize}px; fill: #FF9E1A;">${accentLine}</text>
+    <text x="62" y="${accentY}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${accentSize}px; fill: #FF9E1A;">${accentLine}</text>
     ${renderLines(bodyLines, 62, 1170, 48, "bodyDark")}
     ${pill(674, 1188, 350, 84, C.indigo, `📞  ${DEFAULT_PHONE}`, "pillTextLight")}
   </svg>`;
@@ -244,6 +244,8 @@ function mosaicPromoLayout(args: { title: string; body: string; photoUrl?: strin
   const leadSize = fontSizeFor(title.lead, 88, 62, [[16, 4], [26, 8], [38, 8]]);
   const leadLines = wrapText(title.lead, 16, 2);
   const accent = escapeXml(title.accent || "");
+  const accentX = 58 + Math.max(...leadLines.map((line) => line.length), 10) * 22;
+  const accentY = 462 + (leadLines.length - 1) * leadSize * 0.92;
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
     ${defs()}
@@ -254,7 +256,7 @@ function mosaicPromoLayout(args: { title: string; body: string; photoUrl?: strin
     <rect width="1080" height="1350" fill="url(#softOverlay)"/>
     ${brandHeader(true)}
     ${renderLines(leadLines, 58, 462, leadSize * 0.92, "titleLight")}
-    <text x="${58 + Math.max(...leadLines.map((line) => line.length), 10) * 22}" y="${462 + (leadLines.length - 1) * leadSize * 0.92}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${leadSize}px; fill: ${C.yellow};">${accent}</text>
+    <text x="${accentX}" y="${accentY}" style="font-family: Arial, sans-serif; font-weight: 900; font-size: ${leadSize}px; fill: ${C.yellow};">${accent}</text>
     ${renderCenteredLines(wrapText(args.body, 38, 2), 540, 710, 54, "bodyLight")}
     ${pill(179, 795, 722, 84, C.yellow, `📞  Sună acum: ${DEFAULT_PHONE}`, "pillTextDark")}
     <text x="540" y="995" text-anchor="middle" style="font: 700 28px Georgia, serif; fill: ${C.white};">${escapeXml(`${DEFAULT_DATE} · Buzău`)}</text>
