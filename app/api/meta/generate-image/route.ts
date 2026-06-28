@@ -37,9 +37,14 @@ export async function POST(req: NextRequest) {
       stylePreset: input.post?.stylePreset,
       designNotes: input.post?.designNotes
     });
-    const permanentUrl = await uploadImageToStorage(dalleUrl, `post-${input.postIndex ?? 0}-${Date.now()}`);
 
-    return NextResponse.json({ imageUrl: permanentUrl });
+    try {
+      const permanentUrl = await uploadImageToStorage(dalleUrl, `post-${input.postIndex ?? 0}-${Date.now()}`);
+      return NextResponse.json({ imageUrl: permanentUrl, persisted: true });
+    } catch (storageError) {
+      const warning = storageError instanceof Error ? storageError.message : "Storage persistence failed.";
+      return NextResponse.json({ imageUrl: dalleUrl, persisted: false, warning });
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Image generation failed";
     return NextResponse.json({ error: message }, { status: 500 });
