@@ -97,8 +97,7 @@ export function ScriptToContentForm() {
           </div>
         </div>
         <div className="brand-orbit" aria-hidden="true">
-          <div className="planet-brain">🧠</div>
-          <div className="orbit-ring" />
+          <img className="brand-logo-card" src="/brand/youngminds-logo.svg" alt="" />
           <div className="spark spark-one">✦</div>
           <div className="spark spark-two">✧</div>
         </div>
