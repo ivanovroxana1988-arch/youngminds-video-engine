@@ -2,6 +2,7 @@ export type ContentFormat = "instagram_post" | "instagram_carousel" | "reel_scri
 
 export type TemplateType = "photo_split" | "photo_hero" | "text_card" | "carousel_education";
 export type ImageType = "real_photo" | "ai_image" | "graphic" | "mixed";
+export type StylePreset = "overlay_photo" | "split_showcase" | "bottom_band" | "mosaic_promo";
 
 export type CarouselSlide = {
   title: string;
@@ -18,6 +19,7 @@ export type GeneratedPost = {
   format: ContentFormat;
   templateType?: TemplateType;
   imageType?: ImageType;
+  stylePreset?: StylePreset;
   photoTheme?: string;
   photoRequired?: boolean;
   designNotes?: string;
