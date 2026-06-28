@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { VisualAssetExporter } from "@/components/VisualAssetExporter";
 import { MetaTokenStatus } from "@/components/MetaTokenStatus";
 import { YOUNGMINDS_BRAND } from "@/lib/brand/youngminds";
@@ -25,6 +25,13 @@ const TEMPLATE_OPTIONS: { value: TemplateType; label: string }[] = [
 
 const brand = `${YOUNGMINDS_BRAND.name} - ${YOUNGMINDS_BRAND.descriptor}`;
 
+type MediaItem = {
+  name: string;
+  path: string;
+  url: string;
+  createdAt?: string | null;
+};
+
 export function ScriptToContentForm() {
   const [script, setScript] = useState("");
   const [audience, setAudience] = useState<string>(YOUNGMINDS_BRAND.audience);
@@ -37,6 +44,57 @@ export function ScriptToContentForm() {
   const [templateOverrides, setTemplateOverrides] = useState<Record<number, TemplateType>>({});
   const [generatingImages, setGeneratingImages] = useState<Record<number, boolean>>({});
   const [autoGenerateVisuals, setAutoGenerateVisuals] = useState(true);
+  const [libraryImages, setLibraryImages] = useState<MediaItem[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [uploadingLibrary, setUploadingLibrary] = useState(false);
+
+  useEffect(() => {
+    void loadMediaLibrary();
+  }, []);
+
+  async function loadMediaLibrary() {
+    setLoadingLibrary(true);
+    try {
+      const response = await fetch("/api/media/list");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Nu am putut încărca librăria media.");
+      setLibraryImages(data.items ?? []);
+    } catch (err: any) {
+      setError(err.message ?? "Nu am putut încărca librăria media.");
+    } finally {
+      setLoadingLibrary(false);
+    }
+  }
+
+  async function handleLibraryUpload(files: FileList | null) {
+    if (!files?.length) return;
+
+    setUploadingLibrary(true);
+    setError(null);
+    setActionResult(null);
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => formData.append("files", file));
+
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Uploadul imaginilor a eșuat.");
+      }
+
+      setActionResult(`Au fost încărcate ${data.uploaded?.length ?? 0} imagini în librăria media.`);
+      await loadMediaLibrary();
+    } catch (err: any) {
+      setError(err.message ?? "Uploadul imaginilor a eșuat.");
+    } finally {
+      setUploadingLibrary(false);
+    }
+  }
 
   async function requestImage(post: GeneratedPost, index: number) {
     const response = await fetch("/api/meta/generate-image", {
@@ -52,7 +110,9 @@ export function ScriptToContentForm() {
           imageType: post.imageType,
           photoTheme: post.photoTheme,
           photoRequired: post.photoRequired,
-          templateType: templateOverrides[index] ?? post.templateType
+          templateType: templateOverrides[index] ?? post.templateType,
+          stylePreset: post.stylePreset,
+          designNotes: post.designNotes
         }
       })
     });
@@ -75,12 +135,12 @@ export function ScriptToContentForm() {
       if (imageUrl) {
         setPostImages((prev) => ({ ...prev, [index]: imageUrl }));
       }
-      return imageUrl;
+      return { ok: true, imageUrl };
     } catch (err: any) {
       if (!options?.silent) {
         setError(err.message ?? "Generarea imaginii a eșuat.");
       }
-      return undefined;
+      return { ok: false, error: err.message ?? "Generarea imaginii a eșuat." };
     } finally {
       setGeneratingImages((prev) => ({ ...prev, [index]: false }));
     }
@@ -88,17 +148,30 @@ export function ScriptToContentForm() {
 
   async function generateImagesForPlan(posts: GeneratedPost[]) {
     let success = 0;
+    const errors: string[] = [];
 
     for (let index = 0; index < posts.length; index++) {
-      const imageUrl = await generateImageForPost(posts[index], index, { silent: true });
-      if (imageUrl) success += 1;
+      const result = await generateImageForPost(posts[index], index, { silent: true });
+      if (result.ok) {
+        success += 1;
+      } else if (result.error) {
+        errors.push(`Postarea ${index + 1}: ${result.error}`);
+      }
     }
 
-    if (success > 0) {
+    if (success > 0 && errors.length === 0) {
       setActionResult(`Plan generat. ${success}/${posts.length} imagini au fost generate automat.`);
-    } else {
-      setActionResult("Plan generat. Imaginile nu au fost generate automat, dar le poți regenera manual.");
+      return;
     }
+
+    if (success > 0 && errors.length > 0) {
+      setActionResult(`Plan generat. ${success}/${posts.length} imagini au fost generate automat, dar unele au eșuat.`);
+      setError(errors.join(" | "));
+      return;
+    }
+
+    setActionResult("Plan generat, dar generarea AI a imaginilor nu a mers.");
+    if (errors.length > 0) setError(errors.join(" | "));
   }
 
   async function generate() {
@@ -136,7 +209,7 @@ export function ScriptToContentForm() {
         setActionResult("Plan generat. Generez automat imaginile...");
         await generateImagesForPlan(generatedPlan.posts);
       } else {
-        setActionResult("Plan generat. Activează generarea imaginilor când ai nevoie.");
+        setActionResult("Plan generat. Imaginile pot fi generate sau alese din librăria media.");
       }
     } catch (err: any) {
       setError(err.message ?? "Generarea a eșuat.");
@@ -210,6 +283,11 @@ export function ScriptToContentForm() {
     setTemplateOverrides((prev) => ({ ...prev, [index]: value }));
   }
 
+  function assignLibraryPhoto(index: number, url: string) {
+    setPhotoUrls((prev) => ({ ...prev, [index]: url }));
+    setActionResult(`Fotografia a fost selectată pentru postarea ${index + 1}.`);
+  }
+
   return (
     <main className="shell">
       <section className="brand-hero card">
@@ -217,7 +295,7 @@ export function ScriptToContentForm() {
           <p className="eyebrow">YoungMinds Content Studio</p>
           <h1>Postări Instagram pentru afterschool și locul de joacă.</h1>
           <p className="lead">
-            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts, imagini generice create automat și template-uri vizuale cu text așezat corect. Adică un pas mai aproape de automatizare reală, nu doar de muncă mutată dintr-un loc în altul.
+            Scrii o idee despre activitățile YoungMinds. Primești postări, carusele, Reel scripts, imagini sau poze din librăria ta și template-uri apropiate de designul vostru actual.
           </p>
           <div className="activity-row">
             {YOUNGMINDS_BRAND.activities.map((activity) => (
@@ -263,7 +341,7 @@ export function ScriptToContentForm() {
         </div>
 
         <div className="photo-library-note">
-          <strong>Mod automat:</strong> aplicația poate genera singură imagini generice, brand-aligned, pentru fiecare postare. Pozele reale rămân opționale. Dacă vrei, poți folosi și URL-uri proprii sau sugestiile locale: {YOUNGMINDS_PHOTO_LIBRARY.map((photo) => photo.label).join(" · ")}.
+          <strong>Flux recomandat:</strong> încarci câteva poze reale în librăria media din cloud, iar app-ul le poate folosi în postări. Dacă nu ai poze potrivite, încearcă și generarea AI. Pozele locale rămân doar opționale: {YOUNGMINDS_PHOTO_LIBRARY.map((photo) => photo.label).join(" · ")}.
         </div>
 
         <label className="toggle-row" htmlFor="auto-generate-visuals">
@@ -273,7 +351,7 @@ export function ScriptToContentForm() {
             checked={autoGenerateVisuals}
             onChange={(event) => setAutoGenerateVisuals(event.target.checked)}
           />
-          <span>Generează automat imaginile pentru toate postările</span>
+          <span>Generează automat imaginile AI pentru toate postările</span>
         </label>
 
         <div className="actions">
@@ -287,6 +365,47 @@ export function ScriptToContentForm() {
 
         {error && <p className="error">{error}</p>}
         {actionResult && <p style={{ color: "#065f46", fontWeight: 700 }}>{actionResult}</p>}
+      </section>
+
+      <section className="card" style={{ marginTop: 24 }}>
+        <div className="asset-header">
+          <div>
+            <p className="eyebrow">Librărie media</p>
+            <h2>Pozele tale, centralizate online</h2>
+            <p className="lead" style={{ fontSize: "1rem", maxWidth: 900 }}>
+              Aici poți încărca fotografii reale YoungMinds în Supabase Storage. Apoi le alegi rapid pentru fiecare postare. Asta e direcția bună dacă vrei design apropiat de exemplele voastre, nu magie abstractă cu rezultate capricioase.
+            </p>
+          </div>
+          <div className="actions compact">
+            <label className="button secondary" htmlFor="library-upload-input" style={{ cursor: "pointer" }}>
+              {uploadingLibrary ? "Încarc pozele..." : "Încarcă poze în librărie"}
+            </label>
+            <input
+              id="library-upload-input"
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(event) => void handleLibraryUpload(event.target.files)}
+            />
+            <button className="button secondary" type="button" onClick={() => void loadMediaLibrary()} disabled={loadingLibrary}>
+              {loadingLibrary ? "Actualizez..." : "Reîncarcă librăria"}
+            </button>
+          </div>
+        </div>
+
+        {libraryImages.length ? (
+          <div className="library-grid">
+            {libraryImages.map((item) => (
+              <div className="library-card" key={item.path}>
+                <img src={item.url} alt={item.name} className="library-thumb" />
+                <div className="library-meta">{item.name}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="photo-hint">Nu există încă imagini în librărie. Încarcă 5-15 poze bune și viața devine instant mai puțin birocratică.</p>
+        )}
       </section>
 
       {plan && (
@@ -308,6 +427,7 @@ export function ScriptToContentForm() {
                 <div className="post-topline">
                   <span className="badge">{post.format}</span>
                   <span className="meta-chip">{selectedTemplate}</span>
+                  <span className="meta-chip">{post.stylePreset ?? "overlay_photo"}</span>
                   <span className="meta-chip">{post.imageType ?? "mixed"}</span>
                   {post.photoRequired ? <span className="meta-chip warning">vizual foto recomandat</span> : null}
                 </div>
@@ -332,7 +452,7 @@ export function ScriptToContentForm() {
                       </select>
                     </div>
                     <div>
-                      <label htmlFor={`photo-${index}`}>Poză opțională / URL imagine</label>
+                      <label htmlFor={`photo-${index}`}>Poză / URL imagine</label>
                       <input
                         id={`photo-${index}`}
                         value={photoUrls[index] ?? ""}
@@ -343,7 +463,7 @@ export function ScriptToContentForm() {
                   </div>
 
                   <p className="photo-hint">
-                    <strong>Temă foto:</strong> {post.photoTheme ?? "nespecificată"}. {post.designNotes ? <><strong> Design:</strong> {post.designNotes}</> : null}
+                    <strong>Temă foto:</strong> {post.photoTheme ?? "nespecificată"}. <strong>Stil:</strong> {post.stylePreset ?? "overlay_photo"}. {post.designNotes ? <><strong> Design:</strong> {post.designNotes}</> : null}
                   </p>
 
                   <div className="actions compact">
@@ -355,12 +475,26 @@ export function ScriptToContentForm() {
                     <button
                       className="button secondary"
                       type="button"
-                      onClick={() => generateImageForPost(post, index)}
+                      onClick={() => void generateImageForPost(post, index)}
                       disabled={generatingImages[index]}
                     >
                       {generatingImages[index] ? "Generez imaginea..." : postImages[index] ? "Regenerează imagine AI" : "Generează imagine AI"}
                     </button>
                   </div>
+
+                  {libraryImages.length ? (
+                    <div style={{ marginTop: 14 }}>
+                      <strong>Poze din librărie pentru această postare</strong>
+                      <div className="picker-grid">
+                        {libraryImages.slice(0, 8).map((item) => (
+                          <button key={`${item.path}-${index}`} type="button" className="picker-card" onClick={() => assignLibraryPhoto(index, item.url)}>
+                            <img src={item.url} alt={item.name} className="picker-thumb" />
+                            <span>Folosește poza</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   {selectedPhotoUrl ? (
                     <img
